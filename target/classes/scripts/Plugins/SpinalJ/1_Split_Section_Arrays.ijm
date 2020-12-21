@@ -6,6 +6,9 @@
 //updated 8/27/2020 
 //fixed metadata extraction without loading image
 //rois that lie outside the image boundaries are ignored for segmentation
+
+//updated 12/10/2020
+//added option to pre-scale images and perform mask placement on compressed files for faster processing
 //-----------------------------------------------------------------------------------------
 //====================================================================================================================================
 
@@ -268,21 +271,155 @@ else if ((File.exists(path_all+"_Coordinates_Rows.txt")==1)&&(rerun=="no")){	//m
 // IMAGE TRANSFORMATION AND CROPPING
 
 // Choose transformation option (flipping all images)				
-Dialog.create("Pre-processing all images");
-options=newArray("no flip", "vertical flip (up-down)", "horizontal flip (left-right)", "vertical and horizontal flip"); 
-Dialog.addRadioButtonGroup("Transformation", options, 4, 1, "no flip");
+Dialog.create("Image Transformation and Segmentation");
+options1=newArray("no flip", "vertical flip (up-down)", "horizontal flip (left-right)", "vertical and horizontal flip"); 
+Dialog.addRadioButtonGroup("Transformation", options1, 4, 1, "no flip");
+options2=newArray("no pre-scaling (faster but more hands-on time)", "pre-scaling (slower but less hands-on time)");
+Dialog.addRadioButtonGroup("Segmentation", options2, 2, 1, "no pre-scaling (faster but more hands-on time)");
+Dialog.addNumber("pre-scaling channel", 1);
 Dialog.show();
-choice = Dialog.getRadioButton();
+choice1 = Dialog.getRadioButton();
+choice2 = Dialog.getRadioButton();
+//channel used for mask placement
+pch=Dialog.getNumber();
 
+//---------------------------------------------------------------------------------------------------------------------
+
+
+// pre-scale images
+if (choice2=="pre-scaling (slower but less hands-on time)") {
+	//path_all = getDirectory("Choose folder that contains raw image files"); /////////////
+	path_all_prescaled=path_all+"/scaled/";
+	//check if has been run before
+	if (File.isDirectory(path_all_prescaled)==true){	//check if pre-scaled images have been created before
+		//ask if re-run
+		Dialog.create("Images have been pre-scaled previously!");
+		Dialog.addChoice("Do you want to re-run pre-scaling?", newArray("yes", "no"), "yes");
+		Dialog.show();
+		choice3=Dialog.getChoice();
+	}
+	else {
+		choice3="yes";	
+	}
+
+	if (choice3=="yes"){		
+		File.makeDirectory(path_all_prescaled);
+		print("Scaling image " + 1 + " of " + fileList.length + " ...");
+		//setBatchMode(true);	//Batchmode messes up saving: if active, image is saved before scaling!
+		for (p=0; p<fileList.length; p++){
+			print("\\Update:Scaling image " + p+1 + " of " + fileList.length + " ..."); 
+			//open image
+			run("Bio-Formats Windowless Importer", "open=[" + path_all + fileList[p] + "] color_mode=Default rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT");
+			//duplicate ref channel
+			run("Duplicate...", "duplicate channels="+pch);
+			run("Enhance Contrast", "saturated=0.35");
+			//scale down (0.1x)
+			run("Scale...", "x=0.1 y=0.1 interpolation=Bilinear average create");
+			run("8-bit");
+			//save
+			scaled_tit=getTitle();
+			//print(scaled_tit);
+			selectWindow(scaled_tit);
+			saveAs(".tiff", path_all_prescaled+fileList[p]);
+			close("*");
+		}
+		//setBatchMode(false);
+		print("Scaling complete!");
+	}
+
+	//check if segmentation masks have been placed before
+	if ((File.exists(path_all + "_ROI_X.txt")==true) && (File.exists(path_all + "_ROI_Y.txt")==true)){	//check if ROI coordinates have been saved before
+		//ask if re-run
+		Dialog.create("Segmentation masks have been placed previously!");
+		Dialog.addChoice("Do you want to re-run mask placement?", newArray("yes", "no"), "yes");
+		Dialog.show();
+		choice4=Dialog.getChoice();
+	}
+	else {
+		choice4="yes";
+	}
+
+	if (choice4=="yes"){	
+		//place segmentation mask on pre-scaled images
+		mask_scaled = File.openDialog("Choose scaled segmentation mask ROI file"); 
+		Cx=newArray(fileList.length);
+		Cy=newArray(fileList.length);
+	
+		for (m=0; m<fileList.length; m++){
+    		//run("Bio-Formats Windowless Importer", "open=[" + path_all_prescaled + fileList[m] + "] color_mode=Default rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT");
+			open(replace(path_all_prescaled + fileList[m],"nd2","tif"));
+			//transform image according to user input
+			if (choice1=="vertical flip (up-down)"){
+	    		run("Flip Vertically");    
+	    	}
+    		else if (choice1=="horizontal flip (left-right)"){
+    			run("Flip Horizontally");  
+    		}
+    		else if (choice1=="vertical and horizontal flip"){
+    			run("Flip Vertically");
+    			run("Flip Horizontally");  
+    		}
+
+			roiManager("reset");													
+			roiManager("Open", mask_scaled);  
+			roiManager("Select", 0);                           
+			setTool(0);                                                                         
+			waitForUser("Position mask to split image or Shift+click OK to skip");	//position mask 
+		
+			if (isKeyDown("Shift") == true) {				//check if shift key has been used to skip
+        		//skip  
+        		Cx[m]=-1000000;	//if skipped, make roi outside of image so that they are ignored when splitting image!!
+  				Cy[m]=-1000000;			
+      		}
+			else { 							      
+				roiManager("Update");
+				//get center coordinates
+  				Roi.getBounds(mx, my, mwidth, mheight);	//x,y: coordinates of top left corner
+  				//print(mx); print(my); print(mwidth); print(mheight);
+  				//center of ROI
+  				Cx[m]=floor(mx+(mwidth/2));
+  				Cy[m]=floor(my+(mheight/2));			
+			}
+			close("*");
+			setKeyDown("none");				// reset shift 
+		}
+		//save coordinates 
+		print("\\Clear");
+		Array.print(Cx);
+		selectWindow("Log");
+		saveAs(".txt", path_all+"_ROI_X.txt");
+	
+		print("\\Clear");
+		Array.print(Cy);
+		selectWindow("Log");
+		saveAs(".txt", path_all+"_ROI_Y.txt");
+	}
+	else {														//load existing ROI coordinates
+		Cx_str=File.openAsString(path_all+"_ROI_X.txt");
+		Cx_str_sp=split(Cx_str, ",,");
+		Cx=newArray(Cx_str_sp.length);
+		for(i=0; i<Cx_str_sp.length; i++){
+			Cx[i]=parseFloat(Cx_str_sp[i]);
+		}
+		Cy_str=File.openAsString(path_all+"_ROI_Y.txt");
+		Cy_str_sp=split(Cy_str, ",,");
+		Cy=newArray(Cy_str_sp.length);
+		for(i=0; i<Cy_str_sp.length; i++){
+			Cy[i]=parseFloat(Cy_str_sp[i]);
+		}
+		//Array.print(Cx);
+		//Array.print(Cy);
+	}
+}
+
+ 						
+// SPLIT IMAGES
+print("Transforming and splitting images...");
+File.makeDirectory(path_all+"_I_Split");
 // Browse mask for segmentation
 myDirectory = getDirectory("startup");
 call("ij.io.OpenDialog.setDefaultDirectory", myDirectory);
 mask = File.openDialog("Choose segmentation mask ROI file"); //only offer standard 3x3 mask? Offer 2x2, 3x3, 4x4, 5x5 options?
-//---------------------------------------------------------------------------------------------------------------------
-
-// SPLIT IMAGES
-print("Transforming and splitting images...");
-File.makeDirectory(path_all+"_I_Split");
 
 //get images into correct order
 for (mm=0; mm<imagesonslide.length; mm++){		//loop through all slides
@@ -381,17 +518,18 @@ for (mm=0; mm<imagesonslide.length; mm++){		//loop through all slides
 
 			//OPEN AND TRANSFORM IMAGE, SAVE SEGMENTED TILES  
 			close("*");
+			
 			for (ss=0; ss<slideorder.length; ss++){		
 				//run("Bio-Formats Macro Extensions");
 				run("Bio-Formats Windowless Importer", "open=[" + path_all + slideorder[ss] + "] color_mode=Default rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT");
    				currImg = getTitle();
 				title = replace(slideorder[ss], ".nd2", ""); 
 		    	//transform image according to user input
-		    	if (choice=="vertical flip (up-down)"){
+		    	if (choice1=="vertical flip (up-down)"){
 	    			run("Flip Vertically", "stack");    }
-    			if (choice=="horizontal flip (left-right)"){
+    			if (choice1=="horizontal flip (left-right)"){
     				run("Flip Horizontally", "stack");  }
-    			if (choice=="vertical and horizontal flip"){
+    			if (choice1=="vertical and horizontal flip"){
     				run("Flip Vertically", "stack");
     				run("Flip Horizontally", "stack");  }
 
@@ -407,29 +545,57 @@ for (mm=0; mm<imagesonslide.length; mm++){		//loop through all slides
 				// load segmentation mask
 				roiManager("reset");													
 				roiManager("Open", mask);   
-				roiManager("Select", 0);                           
-				setTool(0);                                                                          
-				waitForUser("Position mask to split image or Shift+click OK to skip");	//position mask   
+				roiManager("Select", 0);   
 				
-				if (isKeyDown("Shift") == true) {				//check if shift key has been used to skip
-        			//skip  			
-        			}
-				else {
+				if (choice2=="no pre-scaling (faster but more hands-on time)") {  // Mask placement on original images 
+					setTool(0);                                                                          
+					waitForUser("Position mask to split image or Shift+click OK to skip");	//position mask   
+					if (isKeyDown("Shift") == true) {				//check if shift key has been used to skip
+        				//skip  			
+        				}
+					else {
 	  				resetMinAndMax();   							//reset brightness           
 					roiManager("Update");
 					roiManager("Split");
-					setBatchMode(true); 	
-									
-					for (tt=1; tt<=9; tt++){ 							//split image into 9
-						selectWindow(currImg);		
-						roiManager("Select", tt);	
-						Roi.getBounds(rx, ry, rw, rh);
-						//if((rx>Iw)||(rx+rw<0)||(ry>Ih)||(ry+rh<0)){		//if roi is outside of image, does not work as position is reset to middle if outside					
+					}
+				}
+				else if (choice2=="pre-scaling (slower but less hands-on time)") {  // Mask placement on pre-scaled images 
+					//get index of current image to match coordinates
+					for (e=0; e<fileList.length; e++) {
+						if(fileList[e]==slideorder[ss]){
+							curr_ID=e;
+							//print("curr_ID of file" + slideorder[ss] + " =" + curr_ID);
+						}
+					}
+					//print(curr_ID);
+					Cx_scaled=Cx[curr_ID]*10;
+					Cy_scaled=Cy[curr_ID]*10;
+					//print(Cy_scaled); print(Cx_scaled);	
+					
+					//move mask to determined coordinates
+					getSelectionBounds(x_current, y_current, w_current, h_current);
+					dx=Cx_scaled-x_current-floor(w_current/2);
+					dy=Cy_scaled-y_current-floor(h_current/2);
+					//print(dx); print(dy);
+          			setSelectionLocation(x_current+dx, y_current+dy);
+          			roiManager('update');
+					setTool(0);
+					resetMinAndMax();   							//reset brightness           
+					roiManager("Update");
+					roiManager("Split");
+				}
+					
+				//split image into 9
+				setBatchMode(true); 					
+				for (tt=1; tt<=9; tt++){ 							
+					selectWindow(currImg);		
+					roiManager("Select", tt);	
+					Roi.getBounds(rx, ry, rw, rh);
+					//if((rx>Iw)||(rx+rw<0)||(ry>Ih)||(ry+rh<0)){		//does not work, as roi position is reset to middle if outside of image 					
 						
-						if((-floor(-(rx+(rw/2)))!=floor(Iw/2))&&(-floor(-(ry+(rh/2)))!=floor(Ih/2))){							//roi is exactly in middle (unlikely to happen by dragging manually								
-							//print("inside");
-							run("Duplicate...", "duplicate");	
-				
+					if((-floor(-(rx+(rw/2)))!=floor(Iw/2)) && (-floor(-(ry+(rh/2)))!=floor(Ih/2)) && (rx>0) && (ry>0)){			//triggered unless roi is exactly in middle (indication of position reset and unlikely to happen by dragging manually) 					
+						//print("inside");
+						run("Duplicate...", "duplicate");	
 							if (currslide<10){					
 								if (ss<10){							//bringing Image and Segment number to two digits
 									sa="0"+ss+1;}
@@ -457,19 +623,20 @@ for (mm=0; mm<imagesonslide.length; mm++){		//loop through all slides
 							saveAs("Tiff", savesplit);																											
 							//selectImage(currImg);  
 							//close();	
-						}
-						else{
-							print("skipped roi "+tt+" because is outside image "+currImg);
-							//close();
-						}
 					}
-					close();												
+					else{
+						print("skipped roi "+tt+" because is outside image "+currImg);
+						//close();
+					}
 				}
-				setBatchMode(false); 
 				close("*");
-				setKeyDown("none");				// reset shift 
+				setBatchMode(false);
+														
 			}
-		}		// end if(imagesonslide[mm]>0){	
+			close("*");
+			setKeyDown("none");				// reset shift 
+		
+	}		// end if(imagesonslide[mm]>0){	
 }		//  end for (mm=0; mm<imagesonslide.length; mm++){				//end split images
 
 

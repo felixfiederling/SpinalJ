@@ -107,7 +107,7 @@ for (i=start; i<slices; i++) {		// loop through stack slices
 	//"space": keep, "control": replace, "alt": delete
 	if (i==0){
 		//waitForUser("Press 'space' to keep, 'control' to replace or 'alt' to delete current section. Start after clicking OK");  
-		print("Press 'space' to keep, 'control' to replace or 'alt' to delete current section.");
+		print("Press 'SPACE' to keep, 'CTRL' to replace or 'ALT' to delete current section.");
 	}
 
 	//wait for user input (key press)

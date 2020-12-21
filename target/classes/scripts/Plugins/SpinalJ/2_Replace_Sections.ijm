@@ -1,8 +1,5 @@
 //FF 8/7/2020										
 //replace lost sections
-//updated to run after I_Split
-//running after III_Clean will miss to replace sections that have been replaced in the cleaning process (and thus have another Slide/Section/Image ID)
-//
 //
 //requires notes of sections that have been lost on sectioning in form of a csv table with column "Slide" and "Section".
 //Slide: # of slide 
@@ -29,10 +26,14 @@
 //0399_Segment_07_Slide_05_Image_03
 //0487_Segment_08_Slide_05_Image_03
 
+//updated to run after I_Split
+//running after III_Clean will miss to replace sections that have been replaced in the cleaning process (and thus have another Slide/Section/Image ID)
+//
+
 //-------------------------------------------------------------------------------------------------------------------------------
 
 //lost sections
-path_lost=File.openDialog("List of lost sections");
+path_lost=File.openDialog("List of lost sections (csv)");
 open(path_lost);
 
 title=Table.title;
@@ -63,7 +64,7 @@ run("Close" );
 
 
 //existing sections
-path_clean = getDirectory("Choose III_Clean"); 
+path_clean = getDirectory("Choose folder I_Split"); 
 fileListall = getFileList(path_clean); 
 
 setOption("ExpandableArrays", true);
