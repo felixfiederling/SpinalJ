@@ -4,11 +4,12 @@
 //single channel montage displays each section sorted into segments 1-9 (rows)
 //user can select segments from which all images need to be rotated (embedded upside-down)
 //--------------------------------------------------------------------------------
-inputdir=getDirectory("Choose folder that contains raw image files.");			//$$$$$$$$$$$$$$$ how to avoid this?
+#@ File(label="Image Data:", description="Subfolder containing spinal cord block section raw data", style="directory") input
+//inputdir=getDirectory("Choose folder that contains raw image files.");			//$$$$$$$$$$$$$$$ how to avoid this?
 start=getTime();
 
-if (File.exists(inputdir + "/_Temp/Segmentation_Parameters.csv")) {
-	ParamFile = File.openAsString(inputdir + "/_Temp/Segmentation_Parameters.csv");
+if (File.exists(input + "/_Temp/Segmentation_Parameters.csv")) {
+	ParamFile = File.openAsString(input + "/_Temp/Segmentation_Parameters.csv");
 	ParamFileRows = split(ParamFile, "\n"); 		
 } else {
 	exit("Pre-processing Parameter file doesn't exist, please run Set Pre-processing Settings step for this folder first.");
@@ -159,8 +160,8 @@ if(max==1){		//at least one segment needs rotation
 else{
 	print("No rotation required!"); 
 }
-
-print("Job complete! Opening preview...");
+print("Opening preview...");
+print("Job complete!");
 open(path_splitprev+"_Preview_Montage.tif");
 
 //---------------------------------------------------------------------------------------------------------------------------

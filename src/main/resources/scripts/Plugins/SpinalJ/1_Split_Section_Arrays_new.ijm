@@ -1,9 +1,13 @@
 //Load settings
-inputdir=getDirectory("Choose folder that contains raw image files.");			//$$$$$$$$$$$$$$$ how to avoid this?
-start=getTime();
 
-if (File.exists(inputdir + "/_Temp/Segmentation_Parameters.csv")) {
-	ParamFile = File.openAsString(inputdir + "/_Temp/Segmentation_Parameters.csv");
+//inputdir=getDirectory("Choose folder that contains raw image files.");			//$$$$$$$$$$$$$$$ how to avoid this?
+#@ File(label="Image Data:", description="Subfolder containing spinal cord block section raw data", style="directory") input
+
+start=getTime();
+setBatchMode(true);
+
+if (File.exists(input + "/_Temp/Segmentation_Parameters.csv")) {
+	ParamFile = File.openAsString(input + "/_Temp/Segmentation_Parameters.csv");
 	ParamFileRows = split(ParamFile, "\n"); 		
 } else {
 	exit("Pre-processing Parameter file doesn't exist, please run Set Pre-processing Settings step for this folder first.");
@@ -92,7 +96,7 @@ else {		//extract metadata
 	allcoordinatesY=newArray(image_list.length);
 	slide = newArray(image_list.length);
 
-	setBatchMode(true);
+	
 	for (j=0; j<image_list.length; j++){ 
 		
 		//slide information
@@ -116,7 +120,7 @@ else {		//extract metadata
 		allcoordinatesY[j]=YNum;
 		//run("Close");
 	}
-	setBatchMode(false);
+	//setBatchMode(false);
 	close("*");
 //-------------------------------------
 	//FIND HOW MANY IMAGES THERE ARE ON EACH SLIDE
@@ -212,14 +216,19 @@ if (Scale_Seg=="yes") {
 	}
 	else{		//down-scale images
 		File.makeDirectory(path_scaled);  
-		print("Scaling image " + 1 + " of " + image_list.length + " ...");
+		print("\\Update6:Scaling image " + 1 + " of " + image_list.length + " ...");
 		//setBatchMode(true);	//Batchmode messes up saving: if active, image is saved before scaling!
 		for (p=0; p<image_list.length; p++){
-			print("\\Update:Scaling image " + p+1 + " of " + image_list.length + " ..."); 
+			print("\\Update6:Scaling image " + p+1 + " of " + image_list.length + " ..."); 
+			Scalestart = getTime();
 			//open image
 			run("Bio-Formats Windowless Importer", "open=[" + path_data + image_list[p] + "] color_mode=Default rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT");
+			// it's possible to open only the channel you need - but could create issues for other file formats?
+			
+			rename("raw");
 			//duplicate ref channel
-			run("Duplicate...", "duplicate channels="+RefCh);
+			run("Duplicate...", "title=RawCh duplicate channels="+RefCh);
+			close("raw");
 			run("Enhance Contrast", "saturated=0.35");
 			//scale down (0.1x)
 			run("Scale...", "x=0.1 y=0.1 interpolation=Bilinear average create");
@@ -230,8 +239,13 @@ if (Scale_Seg=="yes") {
 			selectWindow(scaled_tit);
 			saveAs(".tiff", path_scaled+image_list[p]);
 			close("*");
+			if (p == 0) {
+				Scaleend = getTime();
+				Scaletime = (Scaleend-Scalestart)/1000;
+				print("  Processing time for one image = " +parseInt(Scaletime)+ " seconds. Total time for rescaling images will be ~"+(parseInt((Scaletime*image_list.length)/60)), "minutes.");
+			}
 		}
-		//setBatchMode(false);
+		
 		print("Scaling complete!");
 	}
 
@@ -256,12 +270,14 @@ if (Scale_Seg=="yes") {
 	}
 		
 	else{		//place segmentation mask on pre-scaled images
+		run("ROI Manager...");
 		mask_scaled = path_masks + "/Split_mask_scaled.roi"; 
 		Cx=newArray(image_list.length);
 		Cy=newArray(image_list.length);
 		for (m=0; m<image_list.length; m++){
     		//run("Bio-Formats Windowless Importer", "open=[" + path_scaled + image_list[m] + "] color_mode=Default rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT");
 			open(replace(path_scaled + image_list[m],"nd2","tif"));
+			
 			//transform image according to user input
 			if (Flip=="vertical flip (up-down)"){
 	    		run("Flip Vertically");    
@@ -273,6 +289,7 @@ if (Scale_Seg=="yes") {
     			run("Flip Vertically");
     			run("Flip Horizontally");  
     		}
+			setBatchMode("show");
 			roiManager("reset");													
 			roiManager("Open", mask_scaled);  
 			roiManager("Select", 0);                           
@@ -415,7 +432,8 @@ if(File.isDirectory(path_split)==false){
 				close("*");
 				
 				//OPEN AND TRANSFORM IMAGE, SAVE SEGMENTED TILES  
-				for (ss=0; ss<slideorder.length; ss++){		
+				for (ss=0; ss<slideorder.length; ss++){
+					ImageStart = getTime();		
 					//run("Bio-Formats Macro Extensions");
 					run("Bio-Formats Windowless Importer", "open=[" + path_data + slideorder[ss] + "] color_mode=Default rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT");
 	   				Stack.setChannel(RefCh);
@@ -445,6 +463,8 @@ if(File.isDirectory(path_split)==false){
 					roiManager("Select", 0);   
 					
 					if (Scale_Seg=="no") {  // Mask placement on original images 
+						setBatchMode("show");
+						run("ROI Manager...");
 						setTool(0);                                                                          
 						waitForUser("Position mask to split image or Shift+click OK to skip");	//position mask   
 						if (isKeyDown("Shift") == true) {				//check if shift key has been used to skip
@@ -483,7 +503,7 @@ if(File.isDirectory(path_split)==false){
 					}
 						
 					//split image into 9
-					setBatchMode(true); 					
+					//setBatchMode(true); 					
 					for (tt=1; tt<=9; tt++){ 							
 						selectWindow(currImg);		
 						roiManager("Select", tt);	
@@ -527,8 +547,12 @@ if(File.isDirectory(path_split)==false){
 						}
 					}
 					close("*");
-					setBatchMode(false);
-															
+					//setBatchMode(false);
+					if (ss == 0) {
+						ImageEnd = getTime();
+						ImageTime = (ImageEnd-ImageStart)/1000;
+						print("  Processing time for one image = " +parseInt(ImageTime)+ " seconds. Total time for all images ~"+(parseInt((ImageTime*slideorder.length)/60)), "minutes.");
+					}									
 				}
 				close("*");
 				setKeyDown("none");				// reset shift 

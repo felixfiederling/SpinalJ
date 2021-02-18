@@ -19,7 +19,7 @@
 #@ File(label="Segmentation Masks:", description="Subfolder containing spinal cord block section segmentation masks (.roi)", style="directory") Masks
 
 #@ String(label="Replace Lost Sections?", choices={"no", "yes"}, style="radioButtonHorizontal", description="Providing a list of sections that were lost during sectioning allows to compensate for tissue loss.") Lost
-#@ File(label="Lost Sections:", description="Subfolder containing '_Lost_Sections.csv' with column 1: Slide; column 2: Section", style="directory") path_lost
+#@ File(label="Lost Sections:", description="Subfolder containing '_Lost_Sections.csv' with column 1: Slide; column 2: Section", value = "C:/", style="directory") path_lost
 
 #@ String(label="Save Horizontal Alignment Temp Data", choices={"no", "yes"}, style="radioButtonHorizontal", description="Save intermediate processing files for troubleshooting.") Alignment_Temp
 #@ Integer(label="Sampling Interval:", value = 10, style="spinner", description="Total number of setions / N sections will be randomly chosen to determine horizontal alignment") Sampling_Int
