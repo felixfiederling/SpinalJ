@@ -86,7 +86,7 @@ print("Preview complete!");
 //allow user to determine which segments need to be rotated
 open(path_splitprev+"_Preview_Montage.tif");
 setTool("zoom");
-waitForUser("Determine which segment(s) (all images in a row) need to be rotated, so that dorsal is up (angles <90 degree are ok). \nLeft or right click to zoom in and out!"); 
+waitForUser("Use zoom (left/right click) to identify tissue piece(s) (all images in a row) that need re-orientation. \nClick OK to enter selection"); 
 Dialog.create("Rotating entire segments");
 Dialog.addCheckbox("Segment 1", false);
 Dialog.addCheckbox("Segment 2", false);

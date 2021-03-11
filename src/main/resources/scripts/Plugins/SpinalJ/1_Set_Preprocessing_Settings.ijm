@@ -49,7 +49,7 @@ print(f,"Reference channel:\t"+RefCh); //7
 print(f,"Directory_Masks:\t"+Masks); //8
 print(f,"Replace lost:\t"+Lost); //9
 print(f,"Directory_Lost:\t"+path_lost); //10
-print(f,"Save temp output:\t"+Alignment_Temp); //11
+//print(f,"Save temp output:\t"+Alignment_Temp); //11
 print(f,"Horizontal Alignment Sampling interval:\t"+Sampling_Int); //12
 print(f,"Minimal test angle:\t"+MinAngle); //13
 print(f,"Maximal test angle:\t"+MaxAngle); //14

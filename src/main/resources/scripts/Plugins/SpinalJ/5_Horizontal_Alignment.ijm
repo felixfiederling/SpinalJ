@@ -769,7 +769,10 @@ run("Image Sequence...", "open=["+path_reformat+RefCh+"/] sort");
 run("Enhance Contrast...", "saturated=1");
 run("Attenuation Correction", "opening=3 reference=1");
 saveAs("tiff", path_reformat+"_Aligned_preview_stack.tif");	
-run("Make Montage...", "scale=0.25");
+Stack.getDimensions(width, height, channels, slices, frames); 
+col=-floor(-(slices/9));	//ceil decimal values
+row=9;
+run("Make Montage...", "columns="+col+" rows="+row+" scale=0.25 font=20 label");
 saveAs("tiff", path_horalign+"_Aligned_preview_montage.tif");
 print("Preview Complete!");
 

@@ -117,7 +117,7 @@ for (i=start; i<slices; i++) {		// loop through stack slices
 	if (i==0){
 		//waitForUser("Press 'space' to keep, 'control' to replace or 'alt' to delete current section. Start after clicking OK");  
 		print("Press 'space' to keep, 'control' to replace or 'alt' to delete current section.");
-		showMessage("Clean image dataset", "Create a continuous stack of intact sections by cleaning out sections that are damaged, out of focus, or otherwise compromised. \n For further information consult the user guide. Key bindings are saved to log window. \n \n Press 'space' to keep, 'control' to replace or 'alt' to delete current section.");
+		showMessage("Clean image dataset", "Create a continuous stack of intact sections by cleaning out sections that are damaged, out of focus, or otherwise compromised. \nFor further information consult the user guide. \n \nPress 'SPACE' to keep, 'CTRL' to replace or 'ALT' to delete current section. \n(Key bindings are saved to log window).");
 	
 	}
 
