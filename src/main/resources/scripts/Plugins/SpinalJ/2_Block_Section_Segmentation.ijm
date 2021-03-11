@@ -1,13 +1,12 @@
 //Load settings
 
-//inputdir=getDirectory("Choose folder that contains raw image files.");			//$$$$$$$$$$$$$$$ how to avoid this?
 #@ File(label="Image Data:", description="Subfolder containing spinal cord block section raw data", style="directory") input
 
 start=getTime();
 setBatchMode(true);
 
-if (File.exists(input + "/_Temp/Segmentation_Parameters.csv")) {
-	ParamFile = File.openAsString(input + "/_Temp/Segmentation_Parameters.csv");
+if (File.exists(input + "/_Temp/_PreProcessing_Parameters.csv")) {
+	ParamFile = File.openAsString(input + "/_Temp/_PreProcessing_Parameters.csv");
 	ParamFileRows = split(ParamFile, "\n"); 		
 } else {
 	exit("Pre-processing Parameter file doesn't exist, please run Set Pre-processing Settings step for this folder first.");

@@ -34,7 +34,7 @@ ReleaseDate= "December 11, 2020";
 #@ boolean(label="5. Measure mean intensities of annotated regions?", description="") IntensityMeasureInABAON
 #@ boolean(label="    Genearate intensity based atlas images?") CreateIntensityMapsON
 //#@ boolean(label="6. Transform orignal channel images into template space?", description="") RawChannelTransformON
-#@ boolean(label="7. Extract specific regions at full resolution (requires min 128 RAM)", description="") FullResExtractON
+#@ boolean(label="6. Extract specific regions at full resolution (requires min 128 RAM)", description="") FullResExtractON
 #@ string(label="    Provide annotation IDs for extraction (e.g. 4,10)", style="text field", value = " ", description="Provide annotation id/intensity to be extracted at full resolution.") ExRegionsStr
 
 

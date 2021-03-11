@@ -21,8 +21,8 @@
 #@ String(label="Replace Lost Sections?", choices={"no", "yes"}, style="radioButtonHorizontal", description="Providing a list of sections that were lost during sectioning allows to compensate for tissue loss.") Lost
 #@ File(label="Lost Sections:", description="Subfolder containing '_Lost_Sections.csv' with column 1: Slide; column 2: Section", value = "C:/", style="directory") path_lost
 
-#@ String(label="Save Horizontal Alignment Temp Data", choices={"no", "yes"}, style="radioButtonHorizontal", description="Save intermediate processing files for troubleshooting.") Alignment_Temp
-#@ Integer(label="Sampling Interval:", value = 10, style="spinner", description="Total number of setions / N sections will be randomly chosen to determine horizontal alignment") Sampling_Int
+//#@ String(label="Save Horizontal Alignment Temp Data", choices={"no", "yes"}, style="radioButtonHorizontal", description="Save intermediate processing files for troubleshooting.") Alignment_Temp
+#@ Integer(label="Horizontal Alignment Sampling Interval:", value = 10, style="spinner", description="Total number of setions / N sections will be randomly chosen to determine horizontal alignment") Sampling_Int
 #@ Integer(label="Minimal Test Angle:", value = -50, style="spinner") MinAngle
 #@ Integer(label="Maximal Test Angle:", value = 50, style="spinner") MaxAngle
 #@ Integer(label="Test Angle Increment:", value = 10, style="spinner") Angle_Inc
@@ -33,7 +33,7 @@
 path_temp=input + "/_Temp/";
 File.makeDirectory(path_temp);
 
-title1 = "Segmentation_Parameters"; 
+title1 = "PreProcessing_Parameters"; 
 title2 = "["+title1+"]"; 
 f=title2; 
 run("New... ", "name="+title2+" type=Table"); 
@@ -50,7 +50,7 @@ print(f,"Directory_Masks:\t"+Masks); //8
 print(f,"Replace lost:\t"+Lost); //9
 print(f,"Directory_Lost:\t"+path_lost); //10
 print(f,"Save temp output:\t"+Alignment_Temp); //11
-print(f,"Sampling interval:\t"+Sampling_Int); //12
+print(f,"Horizontal Alignment Sampling interval:\t"+Sampling_Int); //12
 print(f,"Minimal test angle:\t"+MinAngle); //13
 print(f,"Maximal test angle:\t"+MaxAngle); //14
 print(f,"Test angle increment:\t"+Angle_Inc); //15
@@ -59,7 +59,7 @@ print(f,"Threshold option for masking:\t"+MaskThresh); //17
 
 	
 selectWindow(title1);	
-saveAs("txt", path_temp + "Segmentation_Parameters.csv");
+saveAs("txt", path_temp + "_PreProcessing_Parameters.csv");
 closewindow(title1);
 
 

@@ -15,11 +15,11 @@
  //------------------------------------------------------------------------------------------------------------------------------
 
 #@ File(label="Image Data:", description="Subfolder containing spinal cord block section raw data", style="directory") input
-//inputdir=getDirectory("Choose folder that contains raw image files.");			//$$$$$$$$$$$$$$$ how to avoid this?
+
 start=getTime();
 
-if (File.exists(input + "/_Temp/Segmentation_Parameters.csv")) {
-	ParamFile = File.openAsString(input + "/_Temp/Segmentation_Parameters.csv");
+if (File.exists(input + "/_Temp/_PreProcessing_Parameters.csv")) {
+	ParamFile = File.openAsString(input + "/_Temp/_PreProcessing_Parameters.csv");
 	ParamFileRows = split(ParamFile, "\n"); 		
 } else {
 	exit("Pre-processing Parameter file doesn't exist, please run Set Pre-processing Settings step for this folder first.");
@@ -28,10 +28,10 @@ if (File.exists(input + "/_Temp/Segmentation_Parameters.csv")) {
 path_data = LocateValue(ParamFileRows, "Directory_Data");
 path_data=path_data+"/";    		     		
 RefCh = parseInt(LocateValue(ParamFileRows, "Reference channel"));
-save_temp = LocateValue(ParamFileRows, "Save temp output");
+save_temp = "no";	//LocateValue(ParamFileRows, "Save temp output");
 MaskCh = parseInt(LocateValue(ParamFileRows, "Masking channel"));
 thresh = LocateValue(ParamFileRows, "Threshold option for masking");
-si = parseInt(LocateValue(ParamFileRows, "Sampling interval"));
+si = parseInt(LocateValue(ParamFileRows, "Horizontal Alignment Sampling interval"));
 angle_min = parseInt(LocateValue(ParamFileRows, "Minimal test angle"));
 angle_max = parseInt(LocateValue(ParamFileRows, "Maximal test angle"));
 angle_incr = parseInt(LocateValue(ParamFileRows, "Test angle increment"));
@@ -616,7 +616,7 @@ for (ii=0; ii<stacks.length; ii++){				//for all stacks
 }
 run("Clear Results");
 Array.show(adjust_angle);
-saveAs("Results", path_reformat+"_Horizontal_Alignment_Angles.csv");			//save angles used for alignment to csv
+saveAs("Results", path_horalign+"_Horizontal_Alignment_Angles.csv");			//save angles used for alignment to csv
 
 print("Determining Alignment Angles Complete!");
 setBatchMode(true);
@@ -646,6 +646,10 @@ close("*");
 close("Results");
 close("Log");
 close("ROI Manager");
+
+
+
+//---------------------------------------------------------------------------------------------------------------------------
 
 //Reformat Sections
 print("Reformatting Sections...");
@@ -696,7 +700,7 @@ for (seg=0; seg<9; seg++) {										//for each segment
 				open(path_clean+sections_09[sec]);	}}
 
 		if (nImages>0){			
-			title_multich=getTitle();							//title as in folder Clean
+			title_multich=getTitle();							
 			print("Processing "+title_multich);
 			//scale down to match atlas resolution (2px/um)
 			run("Scale...", "x="+sf+" y="+sf+" z=1.0 width="+width_scaled+" height="+height_scaled+" depth="+channels+" interpolation=Bilinear average create");		
@@ -758,12 +762,6 @@ for (seg=0; seg<9; seg++) {										//for each segment
 close("*");
 
 
-//un-comment when starting from here:
-
-//path_cleanprev=getDirectory("Browse Folder IV_Preview_Clean"); 
-//path_clean=File.getParent(path_cleanprev)+"/_III_Clean/";				//folder "III_Clean"
-//path_reformat=path_clean+"1_Reformatted_Sections/";		
-//RefCh=2;		//preview channel
 
 print("Creating Post Alignment Preview (ref ch)...");
 //save ref ch stack and montage
@@ -772,12 +770,14 @@ run("Enhance Contrast...", "saturated=1");
 run("Attenuation Correction", "opening=3 reference=1");
 saveAs("tiff", path_reformat+"_Aligned_preview_stack.tif");	
 run("Make Montage...", "scale=0.25");
-saveAs("tiff", path_reformat+"_Aligned_preview_montage.tif");
+saveAs("tiff", path_horalign+"_Aligned_preview_montage.tif");
 print("Preview Complete!");
 
 
 setBatchMode(false);
 close("*");
+
+open(path_horalign+"_Aligned_preview_montage.tif");    //display preview
 
 print("Reformatting Sections Complete!");
 print("Processing Time: " + (getTime()-start)/60000 + " Minutes");   
