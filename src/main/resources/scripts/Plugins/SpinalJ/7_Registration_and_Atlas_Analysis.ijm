@@ -1,10 +1,9 @@
-// 3D Registration Cell Detection and Atlas Registration combined
+// 3D registration, cell detection and atlas registration for spinal cord data
 
 // Author: 	Luke Hammond
 // Cellular Imaging | Zuckerman Institute, Columbia University
-// Date:	1st November 2017
-// 			Revised for SpinalJ 19th October 2020
-
+// Date:	19th October 2020
+// 
 
 // This pipeline makes use of the following plugins: 
 //		StackReg

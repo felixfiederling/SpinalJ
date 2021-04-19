@@ -30,8 +30,13 @@ path_lost=path_lost+"/";
 
 	
 data_list = getFileList(path_data); 			// list of all files
-image_list=newArray();
+image_list = ImageFilesOnlyArray(data_list);
 setOption("ExpandableArrays", true);
+/* Updated with ImageFileOnlyArray function to sort image files only. Its possible to 
+ * include/exclude addtion file types within this fucntion.
+ * 
+image_list=newArray();
+
 j=0;
 for (i = 0; i < data_list.length; i++) {
 	if(startsWith(data_list[i], "_")==false){	// exclude files and folders that start with "_"
@@ -41,6 +46,7 @@ for (i = 0; i < data_list.length; i++) {
 }
 	
 Array.sort(image_list);			// list of all images 
+*/
 
 //====================================================================================================================================
 // Order files according to order on the slide (the slide scanner may scan and name images in a way that does not reflect order on the slide)
@@ -731,3 +737,20 @@ function LocateValue(inputArray, VarName) {
 	}
 	return Value;
 }
+
+function ImageFilesOnlyArray (arr) {
+	//pass array from getFileList through this e.g. NEWARRAY = ImageFilesOnlyArray(NEWARRAY);
+	setOption("ExpandableArrays", true);
+	f=0;
+	files = newArray;
+	for (i = 0; i < arr.length; i++) {
+		if(endsWith(arr[i], ".tif") || endsWith(arr[i], ".nd2") || endsWith(arr[i], ".LSM") || endsWith(arr[i], ".czi") || endsWith(arr[i], ".jpg") ) {   //if it's a tiff image add it to the new array
+			files[f] = arr[i];
+			f = f+1;
+		}
+	}
+	arr = files;
+	arr = Array.sort(arr);
+	return arr;
+}
+
