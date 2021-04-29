@@ -1,7 +1,19 @@
+// SpinalJ Analysis
 // Setup Spinal Cord Analysis Settings
 
 // First open input directory and check for parameter file
-// if parameter file exists - populate all the variables - if not then just proceed
+// if parameter file exists - populate all the variables - if not then just proceed
+
+
+// Author: 	Luke Hammond, Felix Fiederling
+// Mason/Dodd lab | Zuckerman Institute, Columbia University
+// Date:	4/28/2021
+
+
+SpinalJVer ="SpinalJ 1.1";
+ReleaseDate= "4/28/2021";
+
+
 
 #@ File(label="Select folder:", description="Folder containing brain data", style="directory") input
 

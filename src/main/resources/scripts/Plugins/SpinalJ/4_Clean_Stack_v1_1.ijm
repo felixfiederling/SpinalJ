@@ -1,5 +1,15 @@
-//--------------------------------------------------------------------------------
-//8_26_2020	USER INPUT VIA KEYS, NO ANGLE CORRECTION OF INDIVDUAL IMAGES POSSIBLE
+// SpinalJ Image pre-processing
+//Clean out empty images and images showing damaged, obstructed, out of focus images
+
+
+// Author: 	Felix Fiederling
+// Mason/Dodd lab | Zuckerman Institute, Columbia University
+// Date:	4/28/2021
+
+
+SpinalJVer ="SpinalJ 1.1";
+ReleaseDate= "4/28/2021";
+
 
 //--------------------------------------------------------------------------------
 

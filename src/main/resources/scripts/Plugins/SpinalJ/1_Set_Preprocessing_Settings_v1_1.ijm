@@ -1,7 +1,17 @@
+// SpinalJ Image pre-processing
 // Setup SpinalJ Pre-processing Settings
 
-// First open input directory and check for parameter file
+// Author: 	Felix Fiederling, Luke Hammond
+// Mason/Dodd lab; Cellular Imaging | Zuckerman Institute, Columbia University
+// Date:	4/28/2021
 
+
+SpinalJVer ="SpinalJ 1.1";
+ReleaseDate= "4/28/2021";
+
+
+// Setup SpinalJ Pre-processing Settings
+// First open input directory and check for parameter file
 // if parameter file exists - populate all the variables - if not then just proceed - doesn't seem to work but parameters persist so it should be easy to use
 
   
@@ -12,8 +22,7 @@
 #@ String(label="Transform all Block Section Images:", choices={"no flip", "vertical flip (up-down)", "horizontal flip (left-right)", "vertical and horizontal flip"}, style="radioButtonHorizontal", description="Flip sections as necessary so that the segment order in the image is right and down (1-3, 4-6, 7-9).") Flip
 
 #@ String(label="Determine r-c File Order:", choices={"Alphanumeric", "Nikon ND2 stage coodinates"}, value = "Nikon ND2 stage coodinates", style="listBox", description="Determine rostro-caudal order of files by filename (alphanumeric) or by extracting stage coordinates from metadata") FileOrder
-#@ String(label="Order of Sections on Slide:", choices={"Right and Down", "Left and Down", "Right", "Left", "Right and Up", "Left and Up" }, style="listBox", description="Right and Down = Top: 1, 2, 3, 4 Bottom: 5, 6, 7, 8 || Left and Down = Top: 4, 3, 2, 1 Bottom: 8, 7, 6, 5, 4 || ... Only required when extracting coordinates from metadata") SliceArrangement
-//only right and down implemented right now 
+#@ String(label="Order of Sections on Slide:", choices={"Right and Down", "Left and Down", "Right and Up", "Left and Up" }, style="listBox", description="Right and Down = Top: 1, 2, 3, 4 Bottom: 5, 6, 7, 8 || Left and Down = Top: 4, 3, 2, 1 Bottom: 8, 7, 6, 5, 4 || ... Only required when extracting coordinates from metadata") SliceArrangement
 
 #@ String(label="Perform Segmentation on Down-Scaled Images?", choices={"No", "Yes"}, style="radioButtonHorizontal", description="Down-scaling of images reduces user interaction time.") ScaleSegmentation
 #@ File(label="Segmentation Masks:", description="Subfolder containing spinal cord block section segmentation masks (.roi)", style="directory") Masks

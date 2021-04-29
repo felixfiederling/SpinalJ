@@ -1,4 +1,4 @@
-//FF 7/28/2020
+// SpinalJ Image pre-processing
 //Horizontal alignment of spinal cord sections.
 //
 //Cross section images (DAPI or Neurotrace) are processed for gray matter segmentation, split vertically and the left half 
@@ -7,10 +7,15 @@
 //
 //A number of si random images are analyzed from each tissue piece and the averaged rotation angle is applied to all raw images 
 //of the corresponding tissue piece.
-// 
-//Alignment analysis is performed on "IV_Preview_Clean/_Preview_Stack_Clean.tif"
-//Masking of sections is performed on channel specified as "MaskCh"
-//Alignment is performed on images in "III_Clean/" and aligned images are saved to "III_Clean/1_Reformatted_Sections/"
+
+
+// Author: 	Felix Fiederling
+// Mason/Dodd lab | Zuckerman Institute, Columbia University
+// Date:	4/28/2021
+
+
+SpinalJVer ="SpinalJ 1.1";
+ReleaseDate= "4/28/2021";
 
  //------------------------------------------------------------------------------------------------------------------------------
 

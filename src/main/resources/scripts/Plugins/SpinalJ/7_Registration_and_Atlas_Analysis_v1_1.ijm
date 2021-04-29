@@ -1,3 +1,4 @@
+// SpinalJ Analysis
 // 3D registration, cell detection and atlas registration for spinal cord data
 
 // Author: 	Luke Hammond

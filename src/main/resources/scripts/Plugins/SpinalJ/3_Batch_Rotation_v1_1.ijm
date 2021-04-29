@@ -1,8 +1,18 @@
-//--------------------------------------------------------------------------------
+// SpinalJ Image pre-processing
 //Create reference channle preview and rotate entire segments
-
 //single channel montage displays each section sorted into segments 1-9 (rows)
 //user can select segments from which all images need to be rotated (embedded upside-down)
+
+
+// Author: 	Felix Fiederling
+// Mason/Dodd lab | Zuckerman Institute, Columbia University
+// Date:	4/28/2021
+
+
+SpinalJVer ="SpinalJ 1.1";
+ReleaseDate= "4/28/2021";
+
+
 //--------------------------------------------------------------------------------
 #@ File(label="Image Data:", description="Subfolder containing spinal cord block section raw data", style="directory") input
 
