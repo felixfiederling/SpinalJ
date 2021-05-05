@@ -388,7 +388,8 @@ if(File.isDirectory(path_split)==false){	//check if has been run before
 	File.makeDirectory(path_split);
 }
 else{
-	exit("Images have been segmented before! Delete folder '/_Temp/_I_Split/' and '/_Temp/_0_Scaled/' to re-run segmentation.");
+	print("Images have been segmented before! Delete folder '/_Temp/_I_Split/' and '/_Temp/_0_Scaled/' to re-run segmentation.");
+	skip_segmentation="yes";
 }
 
 path_scaled=path_temp+"_0_Scaled/";
@@ -396,8 +397,12 @@ if(File.isDirectory(path_scaled)==false){
 	File.makeDirectory(path_scaled);
 }
 else{
-	exit("Images have been segmented before! Delete folder '/_Temp/_I_Split/' and '/_Temp/_0_Scaled/' to re-run segmentation.");
+	print("Images have been segmented before! Delete folder '/_Temp/_I_Split/' and '/_Temp/_0_Scaled/' to re-run segmentation.");
+	skip_segmentation="yes";
 }
+
+
+if (skip_segmentation!="yes") {		///////////////
 
 count_auto=0;
 count_manual=0;
@@ -645,6 +650,7 @@ for (ss=0; ss<image_list_manual.length; ss++){
 print("Manual segmentation complete!");
 print("Segmentation complete!");
 
+}  ///////////////
 
 //====================================================================================================================================								
 //replace lost sections
@@ -725,9 +731,9 @@ if(replace_lost=="yes"){	//compensate for lost sections
 	
 	for (i=0; i<fileListsort.length; i++) {
 		spl=split(fileListsort[i], "_");
-		segment[i]=spl[1];
-		slide[i]=spl[3];
-		section[i]=replace(spl[5],".tif","");
+		segment[i]=replace(spl[0],"Segment","");
+		slide[i]=replace(spl[1],"Slide","");
+		section[i]=replace(spl[2],"Image",""); section[i]=replace(section[i],".tif","");
 		if (lengthOf(section[i])>2){
 			section[i]=substring(section[i], 1);
 			}
