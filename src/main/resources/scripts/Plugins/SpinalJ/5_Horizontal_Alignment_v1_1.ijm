@@ -86,7 +86,7 @@ sections_analysis09=newArray();
 //create filelist for each tissue segment; not sorted!
 for (t=1; t<10; t++){
 	for (s=0; s<sections_all.length; s++) {
-		if (matches(sections_all[s], ".*Segment_0"+t+".*")) {	
+		if (matches(sections_all[s], ".*Segment0"+t+".*")) {	
 			if (t==1){
 				sections_01[s]=sections_all[s];}
 			else if (t==2){

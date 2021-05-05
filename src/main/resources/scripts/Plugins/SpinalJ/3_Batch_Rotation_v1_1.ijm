@@ -138,7 +138,7 @@ if(max==1){		//at least one segment needs rotation
 	for (i=0; i<fileList.length; i++) {		//all files
 		for (s=0; s<9; s++){				//all segments
 			sm=s+1;
-				if ((seg[s]==1)&&(startsWith(fileList[i], "Segment_0" + sm)==1)){
+				if ((seg[s]==1)&&(startsWith(fileList[i], "Segment0" + sm)==1)){
 					open(path_split+fileList[i]);
 					print("rotating " + fileList[i]);								
 					run("Rotate... ", "angle=" +angle+ " grid=1 interpolation=Bilinear stack");		//rotate stack
