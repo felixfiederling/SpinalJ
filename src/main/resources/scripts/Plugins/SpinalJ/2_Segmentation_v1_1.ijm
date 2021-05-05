@@ -45,6 +45,10 @@ Scale_Seg = LocateValue(ParamFileRows, "Scale Segmentation");
 RefCh = parseInt(LocateValue(ParamFileRows, "Reference channel"));
 path_masks = LocateValue(ParamFileRows, "Directory_Masks");
 path_masks=path_masks+"/";
+size_low = parseInt(LocateValue(ParamFileRows, "Min Object Size"));
+size_high = parseInt(LocateValue(ParamFileRows, "Max Object Size"));
+circ_low = parseInt(LocateValue(ParamFileRows, "Min Circularity"));
+circ_high = parseInt(LocateValue(ParamFileRows, "Max Circularity"));
 replace_lost=LocateValue(ParamFileRows, "Replace lost");
 path_lost=LocateValue(ParamFileRows, "Directory_Lost");
 path_lost=path_lost+"/";
@@ -414,7 +418,7 @@ for (im=0; im<image_list_ordered.length; im++){
 	   	run("Flip Horizontally", "stack");  }
 
 	//attempt auto segmentation
-	size_low=1000000; size_high=5000000; circ_low=0.1;	circ_high=1; //move to settings file?
+	//size_low=1000000; size_high=5000000; circ_low=0.1;	circ_high=1; //move to settings file?
 	Stack.setChannel(RefCh);
     run("Duplicate...", "title="+RefCh); //duplicate ref channel
 	selectWindow(RefCh);
@@ -423,14 +427,13 @@ for (im=0; im<image_list_ordered.length; im++){
 	setAutoThreshold("Mean dark"); //threshold sections
 	run("Convert to Mask");
 	run("Fill Holes");
-	//setBatchMode("show");///////////////////////////////////////////
 	roiManager("reset");
 	run("Analyze Particles...", "size="+size_low+"-"+size_high+" circularity="+circ_low+"-"+circ_high+" show=Nothing include add"); //analyze particles
 	run("Clear Results");
 	roiManager("Measure");
 	//selectWindow(RefCh); close();
 
-	if (nResults==9){ //check if exactly 9 particles detected
+	if (roiManager("count")==9){ //check if exactly 9 particles detected
 		print("Auto-segmentation successful!");
 		count_auto=count_auto+1;
 		n_rows = 3;	n_cols =3;
@@ -456,18 +459,18 @@ for (im=0; im<image_list_ordered.length; im++){
 			roiManager("Rename", i+1); 
 		}
 		run("Clear Results");
-		roiManager("deselect");////////////////////////////////////////
+		roiManager("deselect");
 		//roiManager("Show None");
 		//roiManager("Show All");
 		roiManager("Measure");
 		//crop and save single sections
 		crop_width=3200;
 		crop_height=2800;
-		for (i = 0; i < 9; i++) {
+		for (h = 0; h < 9; h++) {
 			selectWindow(currImg);
-			makeRectangle(getResult("X",i)-floor(crop_width/2),getResult("Y",i)-floor(crop_height/2),crop_width,crop_height);
+			makeRectangle(getResult("X",h)-floor(crop_width/2),getResult("Y",h)-floor(crop_height/2),crop_width,crop_height);
 			run("Duplicate...", "duplicate"); //duplicate crop
-			saveAs(".tiff", path_split+"Segment"+IJ.pad(i+1,2)+"_"+title+".tif"); //save 
+			saveAs(".tiff", path_split+"Segment"+IJ.pad(h+1,2)+"_"+title+".tif"); //save 
 			close();
 		}
 	} 
@@ -507,7 +510,7 @@ print("Auto-segmentation completed for "+count_auto+" of "+image_list_ordered.le
 
 //==================================================================================================================
 //manual segmentation
-//setBatchMode(true);///////////////////////////////////////////////////////
+
 //place segmentation mask on down-scaled images
 image_list_manual=getFileList(path_scaled);
 run("ROI Manager...");
