@@ -1,5 +1,5 @@
 # SpinalJ
-Tools for 3D reconstruction and analysis of spinal cords within the a 3D atlas.
+Tools for 3D reconstruction and analysis of spinal cords within a 3D atlas.
 
 Developed by Felix Fiederling and Luke Hammond.
 
