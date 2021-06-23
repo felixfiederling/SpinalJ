@@ -15,7 +15,7 @@ ReleaseDate= "4/28/2021";
 
 
 
-#@ File(label="Select folder:", description="Folder containing brain data", style="directory") input
+#@ File(label="Select folder:", description="Folder containing single section image data (/_Output/)", style="directory") input
 
 //Updated from "Set experiment parameters" for SpinalJ
 #@ BigDecimal(label="Final resolution of image output (um/px):", value = 2.00, description="Leave as 0 for original resolution", style="spinner") FinalResolution

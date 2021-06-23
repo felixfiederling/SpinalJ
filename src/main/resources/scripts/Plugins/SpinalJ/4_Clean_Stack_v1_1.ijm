@@ -265,7 +265,7 @@ for (i=0; i<fileList.length; i++) {
 
 //save ref images to stack and montage
 run("Image Sequence...", "open=["+path_cleanprev+fileList[0]+"] sort");
-run("Bleach Correction", "correction=[Histogram Matching]"); //histogram matching
+run("Bleach Correction", "correction=[Histogram Matching]"); //histogram matching                  
 saveAs("Tiff", path_cleanprev+"_Preview_Stack_Clean");
 Stack.getDimensions(width, height, channels, slices, frames); 
 col=-floor(-(slices/9));	//ceil decimal values

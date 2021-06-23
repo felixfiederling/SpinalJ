@@ -22,7 +22,7 @@ run("Close All");
 SpinalJVer ="SpinalJ 0.2.0";
 ReleaseDate= "December 11, 2020";
 
-#@ File[] listOfPaths(label="Select experiment/spinal cord folders:", style="both")
+#@ File[] listOfPaths(label="Select experiment/spinal cord folders (/_Output/):", style="both")
 #@ File(label="Select spinal cord atlas to be used:", style="directory") AtlasDir
 
 #@ boolean(label="1. Perform section registration?", description="Required for further analysis.") SectionRegON

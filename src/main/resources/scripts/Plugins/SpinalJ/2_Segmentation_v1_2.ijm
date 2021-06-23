@@ -15,6 +15,12 @@
 //Update 4/19/21
 //ignore non-image files when loading data
 
+//Update 6/22/21
+//fixed slide ordering bug, that prevented renaming files if the same filename was already assigned to another file
+//fixed auto segmentation bug, resulting from decimal readung error when loading pre-processing (circularity) parameters
+//memory usage reduced by garbage collection
+//still have a "macro error" crash when running the script for the first time
+
 SpinalJVer ="SpinalJ 1.1";
 ReleaseDate= "4/28/2021";
 
@@ -25,7 +31,7 @@ ReleaseDate= "4/28/2021";
 #@ File(label="Image Data:", description="Subfolder containing spinal cord block section raw data", style="directory") input
 
 start=getTime();
-setBatchMode(true);
+setBatchMode(true);           
 
 if (File.exists(input + "/_Temp/_PreProcessing_Parameters.csv")) {
 	ParamFile = File.openAsString(input + "/_Temp/_PreProcessing_Parameters.csv");
@@ -45,13 +51,15 @@ Scale_Seg = LocateValue(ParamFileRows, "Scale Segmentation");
 RefCh = parseInt(LocateValue(ParamFileRows, "Reference channel"));
 path_masks = LocateValue(ParamFileRows, "Directory_Masks");
 path_masks=path_masks+"/";
-size_low = parseInt(LocateValue(ParamFileRows, "Min Object Size"));
-size_high = parseInt(LocateValue(ParamFileRows, "Max Object Size"));
-circ_low = parseInt(LocateValue(ParamFileRows, "Min Circularity"));
-circ_high = parseInt(LocateValue(ParamFileRows, "Max Circularity"));
+size_low = LocateValue(ParamFileRows, "Min Object Size");
+size_high = LocateValue(ParamFileRows, "Max Object Size");
+circ_low = LocateValue(ParamFileRows, "Min Circularity");
+circ_high = LocateValue(ParamFileRows, "Max Circularity");
 replace_lost=LocateValue(ParamFileRows, "Replace lost");
 path_lost=LocateValue(ParamFileRows, "Directory_Lost");
 path_lost=path_lost+"/";
+
+
 
 //=======================================================================================================================
 //Get list of images
@@ -73,7 +81,8 @@ setOption("ExpandableArrays", true);
 //replace all commas and spaces in filenames
 for (i = 0; i < image_list.length; i++) {
 	newname1=replace(image_list[i],",","_");  
-	newname2=replace(newname1," ","_"); 
+	newname2=replace(newname1," ","_");
+	newname3=replace(newname2, ".nd2", "_pre.nd2");				// add extenison to all filenames to avoid trouble when repeating this step and errors because of duplicated filenames
 	File.rename(path_data+image_list[i], path_data+newname2);
 }
 
@@ -100,6 +109,7 @@ if(File.exists(path_temp+"_Coordinates_Rows.txt")==1){	//YES, Coordinates alread
 	for(i=0; i<splitstring.length; i++){
 		slide[i]=parseFloat(splitstring[i]);
 	}
+	slide=Array.sort(slide);
 	//load allcoordinatesX
 	pathfile=path_temp+"_Coordinates_X.txt";
 	filestring=File.openAsString(pathfile);
@@ -134,6 +144,7 @@ else {		//extract metadata
 		slidenumber = replace(slidenumber, "_", "");
 		slidenumber = parseInt(slidenumber);
 		slide[j]=slidenumber;
+		
 		if (j==0){
 			print("Reading Metadata of file " + j+1 + " of " + image_list.length + " ...");
 		}
@@ -355,9 +366,13 @@ for (mm=0; mm<imagesonslide.length; mm++){	//loop through all slides
 		print("Ordering complete!");
 		print("Renaming image files to match sectioning order...");
 		slnum=IJ.pad(currslide, 2);							//padded slide number (e.g. 03 or 15)
+
+
+		// rename files based on stage coordinates and slide order
 		for (i = 0; i < currnumber ; i++) { 
 			imnum=IJ.pad(i+1, 2); 							//padded image number 
 			oldname=path_data+slideorder[i];
+			//oldname=replace(oldname,".nd2", "_re.nd2");
 			newname=path_data+"Slide"+slnum+"_Image"+imnum+".nd2";
 			File.rename(oldname, newname);  
 		}
@@ -402,7 +417,7 @@ else{
 }
 
 
-if (skip_segmentation!="yes") {		///////////////
+//if (skip_segmentation!="yes") {		///////////////
 
 count_auto=0;
 count_manual=0;
@@ -413,6 +428,8 @@ for (im=0; im<image_list_ordered.length; im++){
 	currImg = getTitle();
 	title = replace(image_list_ordered[im], ".nd2", ""); 
 	print("Auto-segmenting image "+im+1+" of "+image_list_ordered.length+" ...");
+	//print(size_low+","+size_high+","+ circ_low +","+ circ_high);
+	//print(image_list_ordered[im]);
 	//Flip image according to user input
 	if (Flip=="vertical flip (up-down)"){
 		run("Flip Vertically", "stack");    }
@@ -423,7 +440,7 @@ for (im=0; im<image_list_ordered.length; im++){
 	   	run("Flip Horizontally", "stack");  }
 
 	//attempt auto segmentation
-	//size_low=1000000; size_high=5000000; circ_low=0.1;	circ_high=1; //move to settings file?
+
 	Stack.setChannel(RefCh);
     run("Duplicate...", "title="+RefCh); //duplicate ref channel
 	selectWindow(RefCh);
@@ -433,7 +450,12 @@ for (im=0; im<image_list_ordered.length; im++){
 	run("Convert to Mask");
 	run("Fill Holes");
 	roiManager("reset");
-	run("Analyze Particles...", "size="+size_low+"-"+size_high+" circularity="+circ_low+"-"+circ_high+" show=Nothing include add"); //analyze particles
+	//size_low=1000000;
+	//size_high=5000000;
+	//circ_low=0.05;
+	//circ_high=1;
+	run("Analyze Particles...", "size="+size_low+"-"+size_high+" pixel circularity="+circ_low+"-"+circ_high+" show=Nothing include add"); //analyze particles
+	//run("Analyze Particles...", "size=1000000-5000000 pixel circularity=0.05-1.00 show=Nothing include add");
 	run("Clear Results");
 	roiManager("Measure");
 	//selectWindow(RefCh); close();
@@ -471,6 +493,7 @@ for (im=0; im<image_list_ordered.length; im++){
 		//crop and save single sections
 		crop_width=3200;
 		crop_height=2800;
+		
 		for (h = 0; h < 9; h++) {
 			selectWindow(currImg);
 			makeRectangle(getResult("X",h)-floor(crop_width/2),getResult("Y",h)-floor(crop_height/2),crop_width,crop_height);
@@ -478,6 +501,7 @@ for (im=0; im<image_list_ordered.length; im++){
 			saveAs(".tiff", path_split+"Segment"+IJ.pad(h+1,2)+"_"+title+".tif"); //save 
 			close();
 		}
+		close("*");
 	} 
 	
 	
@@ -508,10 +532,14 @@ for (im=0; im<image_list_ordered.length; im++){
 		Segmenttime = (Segmentend-SegmentStart)/1000;
 		print("  Processing time for one image = " +parseInt(Segmenttime)+ " seconds. Total time for segmenting images will be ~"+(parseInt((Segmenttime*image_list_ordered.length)/60)), "minutes.");
 	}
+	close("*");
+	collectGarbage(4, 4);
 }
 close("*");
 print("Auto-segmentation completed for "+count_auto+" of "+image_list_ordered.length+" images! "+count_manual+" images require manual segmentation.");  
 
+
+collectGarbage(4, 4);
 
 //==================================================================================================================
 //manual segmentation
@@ -568,9 +596,11 @@ Array.print(Cy);
 selectWindow("Log");
 saveAs(".txt", path_temp+"_ROI_Y.txt");
 
+collectGarbage(4, 4);
 
 // split images using manual segmentation info
 print("Manual segmentation parameters saved. Segmenting images ...");
+cnt=0;
 for (ss=0; ss<image_list_manual.length; ss++){
 	ImageStart = getTime();		
 	run("Bio-Formats Windowless Importer", "open=[" + path_data + replace(image_list_manual[ss],".tif",".nd2") + "] color_mode=Default rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT");
@@ -630,6 +660,13 @@ for (ss=0; ss<image_list_manual.length; ss++){
 				saveAs("Tiff", savesplit);																											
 				//selectImage(currImg);  
 				close();	
+
+				if (cnt == 0) {
+					ImageEnd = getTime();
+					ImageTime = (ImageEnd-ImageStart)/1000;
+					print("  Processing time for one image = " +parseInt(ImageTime)+ " seconds. Total time to segment all images ~"+(parseInt((ImageTime*image_list_manual.length)/60)), "minutes.");
+				}	
+				cnt=1;
 			}
 		}
 		else{
@@ -639,18 +676,13 @@ for (ss=0; ss<image_list_manual.length; ss++){
 	}
 	close("*");
 	setKeyDown("none");				// reset shift 
-
-	if (ss == 0) {
-		ImageEnd = getTime();
-		ImageTime = (ImageEnd-ImageStart)/1000;
-		print("  Processing time for one image = " +parseInt(ImageTime)+ " seconds. Total time to segment all images ~"+(parseInt((ImageTime*slideorder.length)/60)), "minutes.");
-	}	
+	collectGarbage(4, 4);
 }
 
 print("Manual segmentation complete!");
 print("Segmentation complete!");
 
-}  ///////////////
+  
 
 //====================================================================================================================================								
 //replace lost sections
@@ -781,6 +813,7 @@ if(replace_lost=="yes"){	//compensate for lost sections
 	print("Replacing lost sections completed!");	
 }
 
+collectGarbage(4, 4);
 end=getTime();
 duration=(end-start)/60000;
 print("Script completed in " + duration + " minutes.");
@@ -823,4 +856,16 @@ function ImageFilesOnlyArray (arr) {
 	arr = files;
 	arr = Array.sort(arr);
 	return arr;
+}
+
+
+function collectGarbage(slices, itr){
+	setBatchMode(false);
+	wait(1000);
+	for(i=0; i<itr; i++){
+		wait(50*slices);
+		run("Collect Garbage");
+		call("java.lang.System.gc");
+		}
+	setBatchMode(true);
 }
