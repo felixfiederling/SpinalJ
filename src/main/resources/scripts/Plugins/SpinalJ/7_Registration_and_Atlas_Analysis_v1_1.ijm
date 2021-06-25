@@ -4227,19 +4227,30 @@ function CreateSCDensityHeatmap(Chan, InputTable, OutputImage) {
 		RegionIDs[NumIDcount] = getResult("Region_ID", NumIDcount);
 	}
 
-	SegmentArray = newArray("C1","C2","C3","C4","C5","C6","C7","C8","T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12","T13","L1","L2","L3","L4","L5","L6","S1","S2","S3","S4","Co1","Co2","Co3");	
-
+	
 	open(AtlasDir + "Annotation_Segments_Only.tif");
 	rename("Annotations");
 	getDimensions(IMwidth, IMheight, channels, IMslices, frames);
 
-	//create empty heatmap image (these are just 8bit for now so scale is % but could be 16bit for decimal places
-	newImage("Heatmap", "8-bit black", AtlasSizeX, AtlasSizeY, IMslices);
-	rename("Heatmap");
+	// Create a Mask to make annotation image easier to view
+	run("Duplicate...", "title=AnnotationMask duplicate");
+	setThreshold(1, 255);
+	run("Convert to Mask", "method=Default background=Dark black");
+	run("Invert", "stack");
+	run("RGB Color");
+	run("Subtract...", "value=18 stack");
+	SegmentArray = newArray("C1","C2","C3","C4","C5","C6","C7","C8","T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12","T13","L1","L2","L3","L4","L5","L6","S1","S2","S3","S4","Co1","Co2","Co3");	
 	for (slice=1; slice<=IMslices; slice++) {
 		setSlice(slice);
 		run("Set Label...", "label="+SegmentArray[slice-1]+"");
 	}
+	run("Colors...", "foreground=black background=black selection=yellow");
+	run("Label...", "format=Label starting=0 interval=1 x=10 y=30 font=20 text=C1 range=1-34");
+	run("Colors...", "foreground=white background=black selection=yellow");
+
+	//create empty heatmap image (these are just 8bit for now so scale is % but could be 16bit for decimal places
+	newImage("Heatmap", "8-bit black", AtlasSizeX, AtlasSizeY, IMslices);
+	rename("Heatmap");
 
 	//process each region
 	for(NumIDcount=0; NumIDcount<NumIDs; NumIDcount++) {
@@ -4267,15 +4278,23 @@ function CreateSCDensityHeatmap(Chan, InputTable, OutputImage) {
 	}
 	close("Annotations");
 	selectWindow("Heatmap");
-	// Label Segments
-	setMinAndMax(0, 255);
-	run("Label...", "format=Label starting=0 interval=1 x=10 y=30 font=20 text=C1 range=1-34");
-	//setBatchMode("show");
-	// finish and save
-	setMinAndMax(0, 100);
-	
-	run("Fire");		
+	for (slice=1; slice<=IMslices; slice++) {
+		setSlice(slice);
+		run("Set Label...", "label="+SegmentArray[slice-1]+"");
+	}
+	setMinAndMax(0, 100);
+	run("Fire");
+	//Create RGB montage image for figures with grey BG
+	run("Duplicate...", "title=HeatmapRGB duplicate");
+	run("RGB Color");
+	imageCalculator("Add stack", "AnnotationMask","HeatmapRGB");
+	run("Make Montage...", "columns=6 rows=5 scale=1");
+	saveAs("Tiff", ProjectionDensityOut + "/"+OutputImage+"_Montage_Grey_Background_RGB.tif");
+	// Create stack of 8bit with fire LUT
+	selectWindow("Heatmap");
+	run("Label...", "format=Label starting=0 interval=1 x=10 y=30 font=20 text=C1 range=1-34");	
 	saveAs("Tiff", ProjectionDensityOut + "/"+OutputImage+".tif");
+	// Create montage image with 
 	run("Make Montage...", "columns=6 rows=5 scale=1");
 	saveAs("Tiff", ProjectionDensityOut + "/"+OutputImage+"_Montage.tif");
 	close("*");
@@ -4349,15 +4368,26 @@ function CreateSCIntensityImage(Chan) {
 	open(AtlasDir + "Annotation_Segments_Only.tif");
 	rename("Annotations");
 	getDimensions(IMwidth, IMheight, channels, IMslices, frames);
-
-	
-	//create empty heatmap image (these are just 8bit for now so scale is % but could be 16bit for decimal places
-	newImage("Heatmap", "16-bit black", AtlasSizeX, AtlasSizeY, IMslices);
-	rename("Heatmap");
+	
+	// Create a Mask to make annotation image easier to view
+	run("Duplicate...", "title=AnnotationMask duplicate");
+	setThreshold(1, 255);
+	run("Convert to Mask", "method=Default background=Dark black");
+	run("Invert", "stack");
+	run("RGB Color");
+	run("Subtract...", "value=18 stack");
+	SegmentArray = newArray("C1","C2","C3","C4","C5","C6","C7","C8","T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12","T13","L1","L2","L3","L4","L5","L6","S1","S2","S3","S4","Co1","Co2","Co3");	
 	for (slice=1; slice<=IMslices; slice++) {
 		setSlice(slice);
 		run("Set Label...", "label="+SegmentArray[slice-1]+"");
 	}
+	run("Colors...", "foreground=black background=black selection=yellow");
+	run("Label...", "format=Label starting=0 interval=1 x=10 y=30 font=20 text=C1 range=1-34");
+	run("Colors...", "foreground=white background=black selection=yellow");
+	
+	//create empty heatmap image (these are just 8bit for now so scale is % but could be 16bit for decimal places
+	newImage("Heatmap", "16-bit black", AtlasSizeX, AtlasSizeY, IMslices);
+	rename("Heatmap");
 
 	//process each region
 	for(NumIDcount=0; NumIDcount<NumIDs; NumIDcount++) {
@@ -4386,12 +4416,24 @@ function CreateSCIntensityImage(Chan) {
 	}
 	close("Annotations");
 	selectWindow("Heatmap");
+	for (slice=1; slice<=IMslices; slice++) {
+		setSlice(slice);
+		run("Set Label...", "label="+SegmentArray[slice-1]+"");
+	}
 	Stack.getStatistics(voxelCount, mean, min, max, stdDev);
 	// Label Segments
 	setMinAndMax(0, 65535);
-	run("Label...", "format=Label starting=0 interval=1 x=10 y=30 font=20 text=C1 range=1-34");
 	run("Fire");
 	setMinAndMax(0, max);
+	//Create RGB montage image for figures with grey BG
+	run("Duplicate...", "title=HeatmapRGB duplicate");
+	run("RGB Color");
+	imageCalculator("Add stack", "AnnotationMask","HeatmapRGB");
+	run("Make Montage...", "columns=6 rows=5 scale=1");
+		saveAs("Tiff", input+"/5_Analysis_Output/Region_Mean_Intensity_Measurements_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Chan+"_Atlas_Region_Intensity_Map_Montage_Grey_BG_RGB.tif");
+	// Create stack with fire LUT
+	selectWindow("Heatmap");
+	run("Label...", "format=Label starting=0 interval=1 x=10 y=30 font=20 text=C1 range=1-34");
 	saveAs("Tiff", input+"/5_Analysis_Output/Region_Mean_Intensity_Measurements_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Chan+"_Atlas_Region_Intensity_Map.tif");
 	run("Make Montage...", "columns=6 rows=5 scale=1");
 	saveAs("Tiff", input+"/5_Analysis_Output/Region_Mean_Intensity_Measurements_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Chan+"_Atlas_Region_Intensity_Map_Montage.tif");
@@ -4424,14 +4466,26 @@ function CreateSCCellDensityHeatmapImage (Chan) {
 	rename("Annotations");
 	getDimensions(IMwidth, IMheight, channels, IMslices, frames);
 	
-	//create empty heatmap image (these are just 8bit for now so scale is % but could be 16bit for decimal places
-	newImage("Heatmap", "16-bit black", AtlasSizeX, AtlasSizeY, IMslices);
-	rename("Heatmap");
+	// Create a Mask to make annotation image easier to view
+	run("Duplicate...", "title=AnnotationMask duplicate");
+	setThreshold(1, 255);
+	run("Convert to Mask", "method=Default background=Dark black");
+	run("Invert", "stack");
+	run("RGB Color");
+	run("Subtract...", "value=18 stack");
+	SegmentArray = newArray("C1","C2","C3","C4","C5","C6","C7","C8","T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12","T13","L1","L2","L3","L4","L5","L6","S1","S2","S3","S4","Co1","Co2","Co3");	
 	for (slice=1; slice<=IMslices; slice++) {
 		setSlice(slice);
 		run("Set Label...", "label="+SegmentArray[slice-1]+"");
 	}
-
+	run("Colors...", "foreground=black background=black selection=yellow");
+	run("Label...", "format=Label starting=0 interval=1 x=10 y=30 font=20 text=C1 range=1-34");
+	run("Colors...", "foreground=white background=black selection=yellow");
+	
+	//create empty heatmap image (these are just 8bit for now so scale is % but could be 16bit for decimal places
+	newImage("Heatmap", "16-bit black", AtlasSizeX, AtlasSizeY, IMslices);
+	rename("Heatmap");
+	
 	//process each region
 	for(NumIDcount=0; NumIDcount<NumIDs; NumIDcount++) {
 		selectWindow("Annotations");
@@ -4459,15 +4513,29 @@ function CreateSCCellDensityHeatmapImage (Chan) {
 	}
 	close("Annotations");
 	selectWindow("Heatmap");
+	for (slice=1; slice<=IMslices; slice++) {
+		setSlice(slice);
+		run("Set Label...", "label="+SegmentArray[slice-1]+"");
+	}
 	Stack.getStatistics(voxelCount, mean, min, max, stdDev);
 	// Label Segments
+	
 	setMinAndMax(0, 65535);
-	run("Label...", "format=Label starting=0 interval=1 x=10 y=30 font=20 text=C1 range=1-34");
+
 	run("Fire");
 	setMinAndMax(0, max);
+	//Create RGB montage image for figures with grey BG
+	run("Duplicate...", "title=HeatmapRGB duplicate");
+	run("RGB Color");
+	imageCalculator("Add stack", "AnnotationMask","HeatmapRGB");
+	run("Make Montage...", "columns=6 rows=5 scale=1");
+	saveAs("Tiff", input+"/5_Analysis_Output/Cell_Analysis/C"+Chan+"_Atlas_Region_Cell_Density_Heatmap_Montage_Grey_RGB.tif");
+	// Create stack with fire LUT
+	selectWindow("Heatmap");
+	run("Label...", "format=Label starting=0 interval=1 x=10 y=30 font=20 text=C1 range=1-34");
 	saveAs("Tiff", input+"/5_Analysis_Output/Cell_Analysis/C"+Chan+"_Atlas_Region_Cell_Density_Heatmap.tif");
 	run("Make Montage...", "columns=6 rows=5 scale=1");
-	saveAs("Tiff", input+"/5_Analysis_Output/Cell_Analysis/C"+Chan+"_Atlas_Region_Cell_Density_Heatmap.tif");
+	saveAs("Tiff", input+"/5_Analysis_Output/Cell_Analysis/C"+Chan+"_Atlas_Region_Cell_Density_Heatmap_Montage.tif");
 	close("*");
 	collectGarbage(10, 4);
 	print("     Complete.");
