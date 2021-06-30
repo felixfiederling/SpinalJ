@@ -82,306 +82,328 @@ setOption("ExpandableArrays", true);
 for (i = 0; i < image_list.length; i++) {
 	newname1=replace(image_list[i],",","_");  
 	newname2=replace(newname1," ","_");
-	newname3=replace(newname2, ".nd2", "_pre.nd2");				// add extenison to all filenames to avoid trouble when repeating this step and errors because of duplicated filenames
 	File.rename(path_data+image_list[i], path_data+newname2);
 }
 
-//====================================================================================================================================
-// Order files according to order on the slide (the slide scanner may scan and name images in a way that does not reflect order on the slide)
 
-//Extract stage coordinates from metadata
+// file extension of image data
+dotIndex = indexOf(image_list[0], "." );
+filetype = substring(image_list[0],dotIndex,lengthOf(image_list[0]));  //e.g ".tif" or ".nd2"
+
+
 path_temp=path_data+"_Temp/";
-// use existing metadata if available 
-if(File.exists(path_temp+"_Coordinates_Rows.txt")==1){	//YES, Coordinates already extracted
-	print("Stage coordinates have been extracted before and will be re-used. Delete coordinate files to re-run metadata analysis");
-	pathfile=path_temp+"_Images_per_Slide.txt";
-	filestring=File.openAsString(pathfile);
-	splitstring=split(filestring, ",,");
-	imagesonslide=newArray(splitstring.length);
-	for(i=0; i<splitstring.length; i++){
-		imagesonslide[i]=parseFloat(splitstring[i]);
-	}
-	//load slide
-	pathfile=path_temp+"_Slides.txt";
-	filestring=File.openAsString(pathfile);
-	splitstring=split(filestring, ",,");
-	slide=newArray(splitstring.length);
-	for(i=0; i<splitstring.length; i++){
-		slide[i]=parseFloat(splitstring[i]);
-	}
-	slide=Array.sort(slide);
-	//load allcoordinatesX
-	pathfile=path_temp+"_Coordinates_X.txt";
-	filestring=File.openAsString(pathfile);
-	splitstring=split(filestring, ",,");
-	allcoordinatesX=newArray(splitstring.length);
-	for(i=0; i<splitstring.length; i++){
-		allcoordinatesX[i]=parseFloat(splitstring[i]);
-	}
-	//load SlideRow
-	pathfile=path_temp+"_Coordinates_Rows.txt";
-	filestring=File.openAsString(pathfile);
-	SlideRow=split(filestring, ",,");
-	for(i=0; i<SlideRow.length; i++){
-		SlideRow[i]=replace(SlideRow[i]," ","");		//remove spaces
-		SlideRow[i]=replace(SlideRow[i],"\n","");		//remove line breaks
-	}
-}
-
-else {		//extract metadata
-	print("Extracting stage coordinates of images...");
-	allcoordinatesX=newArray(image_list.length);				
-	allcoordinatesY=newArray(image_list.length);
-	slide = newArray(image_list.length);
-
-	for (j=0; j<image_list.length; j++){ 
-		if(lengthOf(image_list[j])>19){ //original filename from slide scanner (e.g. Slide1-03_....nd2)
-			slidenumber = substring(image_list[j], 7, 9);
-		}
-		else if(lengthOf(image_list[j])==19){	//filename modified previously by SpinalJ (e.g. Slide03_....nd2)
-			slidenumber = substring(image_list[j], 5, 7);
-		}
-		slidenumber = replace(slidenumber, "_", "");
-		slidenumber = parseInt(slidenumber);
-		slide[j]=slidenumber;
-		
-		if (j==0){
-			print("Reading Metadata of file " + j+1 + " of " + image_list.length + " ...");
-		}
-		else {
-			print("\\Update:" + "Reading Metadata of file " + j+1 + " of " + image_list.length + " ...");
-		}
-		run("Bio-Formats Macro Extensions");
-		Ext.setId(path_data + image_list[j]);
-		Ext.getMetadataValue("dXPos", XNum);
-		Ext.getMetadataValue("dYPos", YNum);
-		allcoordinatesX[j]=XNum;
-		allcoordinatesY[j]=YNum;
-		Ext.close();
-	}
-	close("*");
-
-	//FIND HOW MANY IMAGES THERE ARE ON EACH SLIDE
-	print("\\Clear");
-	Array.print(slide);
-	selectWindow("Log");
-	saveAs(".txt", path_temp+"_Slides.txt");
-	maxslide = Array.findMaxima(slide, 0);
-	maxslide = slide[maxslide[0]];				//select first index if multiple maxima are found
-	imagesonslide = newArray(maxslide);
-	imagesonslide = Array.fill(imagesonslide, 0);
-	for (uu=0; uu<slide.length; uu++){
-		s=slide[uu];
-		imagesonslide[s-1]= imagesonslide[s-1]+1; 
-	}
-	print("\\Clear");
-	Array.print(imagesonslide);		//contains number of images for each slide
-	selectWindow("Log");
-	saveAs(".txt", path_temp+"_Images_per_Slide.txt");
-
-	//SAVE COORDINATES AND SEPARATE BOT vs TOP ROW
-	// slide coordinate range in Nikon slide scanner: 
-	//x: ~29000 - 82000
-	//y: ~20000 - 40500
-	for(tt=0; tt<image_list.length; tt++){
-		allcoordinatesX[tt]=parseInt(allcoordinatesX[tt]);
-		allcoordinatesY[tt]=parseInt(allcoordinatesY[tt]); 
-	}
-	print("\\Clear");
-	Array.print(allcoordinatesX);
-	selectWindow("Log");
-	saveAs(".txt", path_temp+"_Coordinates_X.txt");
-	print("\\Clear");
-	Array.print(allcoordinatesY);
-	selectWindow("Log");
-	saveAs(".txt", path_temp+"_Coordinates_Y.txt");
 
 
-	//sort images based on in which row on the slide they are
-	SlideRow = newArray(image_list.length);
-	Y_row_low = 25000;								
-	Y_row_high = 35000;
-	tolerance = 5000;
-	Y_row_low_max=Y_row_low+tolerance;	// 30000
+
+//====================================================================================================================================
+if (FileOrdering=="Nikon ND2 stage coodinates"){
 	
-	//section order: up
-	if ((sectionorder=="Left and Up") || (sectionorder=="Right and Up")) {
-		//print ("sectionorder up");
-		errorcount=0;
-		for(rr=0; rr<image_list.length; rr++){
-			if(allcoordinatesY[rr]<=Y_row_low_max){	// <=30000
-				SlideRow[rr]="top"; }
-			else if(allcoordinatesY[rr]>Y_row_low_max) {	// >30000
-				SlideRow[rr]="bottom"; }
-			else{
-				SlideRow[rr]="bottom";				//assign "bottom" if can't be assigned
-				errorcount=errorcount+1;
-			}
-		}
-	}
-	//section order: down
-	else if ((sectionorder=="Left and Down") || (sectionorder=="Right and Down")) {
-		//print ("sectionorder down");
-		errorcount=0;
-		for(rr=0; rr<image_list.length; rr++){
-			if(allcoordinatesY[rr]<=Y_row_low_max){	// <=30000
-				SlideRow[rr]="bottom"; }
-			else if(allcoordinatesY[rr]>Y_row_low_max) {	// >30000
-				SlideRow[rr]="top"; }
-			else{
-				SlideRow[rr]="bottom";				//assign "bottom" if can't be assigned
-				errorcount=errorcount+1;
-			}
-		}
+	// Order files according to order on the slide (the slide scanner may scan and name images in a way that does not reflect order on the slide)
+	// add extenison to all filenames to avoid trouble when repeating this step and errors because of duplicated filenames
+	for (i = 0; i < image_list.length; i++) {
+		newname3=replace(image_list[i], filetype, "_pre"+filetype);				
+		File.rename(path_data+image_list[i], path_data+newname2);
 	}
 
-	print("\\Clear");
-	Array.print(SlideRow);
-	selectWindow("Log");
-	saveAs(".txt", path_temp+"_Coordinates_Rows.txt");
-	print("\\Clear");
-	print("Extracting stage coordinates of images...");
-	Array.print(allcoordinatesX);
-	Array.print(allcoordinatesY);
-	Array.print(SlideRow);
-	Array.print(imagesonslide);
-	print("Metadata extraction complete! Image stage coordinates saved!");
-	if(errorcount>0){
-		print("Warning: " + errorcount + " images could not be assigned to either top or bottom row of slide!");	
-	}
-}	 
-//---------------------------------------------------------------------------------------------------------------------------
+	//Extract stage coordinates from metadata
 
-//Rename files to match slide order using stage coordinates
-print("Ordering files based on stage coordinates...");
-//get images into correct order
-for (mm=0; mm<imagesonslide.length; mm++){	//loop through all slides
-	if(imagesonslide[mm]>0){				//if there are more than 0 images on slide mm
-		currslide = mm+1;					//current slide number
-		//print(currslide);
-		currnumber = imagesonslide[mm];		//number of images on current slide
-		//print(currnumber);
-		currfiles = newArray(currnumber);
-		currX = newArray(currnumber);
-		currrow = newArray(currnumber);
-		for (nn=0; nn<currnumber; nn++){
-			for (oo=0; oo<slide.length; oo++){
-				if(slide[oo]==currslide){
-					currfiles[nn]=image_list[oo];			//filenames of images on current slide
-					currX[nn] = allcoordinatesX[oo];	//x-coordinates of images on current slide
-					currrow[nn] = SlideRow[oo];			//row information of images on current slide
-					nn=nn+1;
-					slide[oo] = NaN; 
-				}	
+	// use existing metadata if available 
+	if(File.exists(path_temp+"_Coordinates_Rows.txt")==1){	//YES, Coordinates already extracted
+		print("Stage coordinates have been extracted before and will be re-used. Delete coordinate files to re-run metadata analysis");
+		pathfile=path_temp+"_Images_per_Slide.txt";
+		filestring=File.openAsString(pathfile);
+		splitstring=split(filestring, ",,");
+		imagesonslide=newArray(splitstring.length);
+		for(i=0; i<splitstring.length; i++){
+			imagesonslide[i]=parseFloat(splitstring[i]);
+		}
+		//load slide
+		pathfile=path_temp+"_Slides.txt";
+		filestring=File.openAsString(pathfile);
+		splitstring=split(filestring, ",,");
+		slide=newArray(splitstring.length);
+		for(i=0; i<splitstring.length; i++){
+			slide[i]=parseFloat(splitstring[i]);
+		}
+		slide=Array.sort(slide);
+		//load allcoordinatesX
+		pathfile=path_temp+"_Coordinates_X.txt";
+		filestring=File.openAsString(pathfile);
+		splitstring=split(filestring, ",,");
+		allcoordinatesX=newArray(splitstring.length);
+		for(i=0; i<splitstring.length; i++){
+			allcoordinatesX[i]=parseFloat(splitstring[i]);
+		}
+		//load SlideRow
+		pathfile=path_temp+"_Coordinates_Rows.txt";
+		filestring=File.openAsString(pathfile);
+		SlideRow=split(filestring, ",,");
+		for(i=0; i<SlideRow.length; i++){
+			SlideRow[i]=replace(SlideRow[i]," ","");		//remove spaces
+			SlideRow[i]=replace(SlideRow[i],"\n","");		//remove line breaks
+		}
+	}	
+
+	else {		//extract metadata
+		print("Extracting stage coordinates of images...");
+		allcoordinatesX=newArray(image_list.length);				
+		allcoordinatesY=newArray(image_list.length);
+		slide = newArray(image_list.length);
+	
+		for (j=0; j<image_list.length; j++){ 
+			if(lengthOf(image_list[j])>19){ //original filename from slide scanner (e.g. Slide1-03_....nd2)
+				slidenumber = substring(image_list[j], 7, 9);
 			}
-		}			
-		currXtop = newArray(currrow.length);		//get X coordinates for images on current slide and split into a top and bottom list
-		currXtop = Array.fill(currXtop, 0);
-		currfilestop = newArray(currrow.length);
-		currfilestop = Array.fill(currfilestop, 0);
-		currXbot = newArray(currrow.length);
-		currXbot = Array.fill(currXbot, 0);
-		currfilesbot = newArray(currrow.length);
-		currfilesbot = Array.fill(currfilesbot, 0);
+			else if(lengthOf(image_list[j])==19){	//filename modified previously by SpinalJ (e.g. Slide03_....nd2)
+				slidenumber = substring(image_list[j], 5, 7);
+			}
+			slidenumber = replace(slidenumber, "_", "");
+			slidenumber = parseInt(slidenumber);
+			slide[j]=slidenumber;
 			
-		for (pp=0; pp<currrow.length; pp++){
-			if (currrow[pp]=="top"){
-				//print("top detected");
-				currXtop[pp]=currX[pp];
-				currfilestop[pp]=currfiles[pp];
+			if (j==0){
+				print("Reading Metadata of file " + j+1 + " of " + image_list.length + " ...");
 			}
-			else if (currrow[pp]=="bottom"){
-				//print("bottom detected");
-				currXbot[pp]=currX[pp];
-				currfilesbot[pp]=currfiles[pp];
-				//print(currXbot[pp]);
+			else {
+				print("\\Update:" + "Reading Metadata of file " + j+1 + " of " + image_list.length + " ...");
 			}
-		}
-		currXtop = Array.deleteValue(currXtop, 0);
-		currXbot = Array.deleteValue(currXbot, 0);
-		currfilestop = Array.deleteValue(currfilestop, 0);
-		currfilesbot = Array.deleteValue(currfilesbot, 0);
-				
-		//sort images based on X coordinates
-		ranktop = Array.rankPositions(currXtop); 
-		rankbot = Array.rankPositions(currXbot);
-		for (u=0; u<rankbot.length;u++){				//continuous ranks
-			rankbot[u] = rankbot[u]+ranktop.length;
-		}
-		slideorder = newArray(currnumber);
-		ri = 0;
-		
-		//section order: left
-		if ((sectionorder=="Left and Up") || (sectionorder=="Left and Down")) {
-			//print ("sectionorder left");
-			while (ri<currnumber){
-				if(ri<currXtop.length){
-					for (rr=0; rr<currXtop.length; rr++){
-						if (ranktop[rr]==ri){
-							slideorder[ri]= currfilestop[rr];
-							ri=ri+1;
-						}
-					}
-				}
-				else if (ri>=currXtop.length){
-					for (rr=0; rr<currXbot.length; rr++){
-						if (rankbot[rr]==ri){
-							slideorder[ri]= currfilesbot[rr];
-							ri=ri+1;
-						}
-					}
-				}
-			}	
-		}		
-
-		//section order: right
-		else if ((sectionorder=="Right and Up") || (sectionorder=="Right and Down")) {
-			//print ("sectionorder right");
-			ranktop=Array.reverse(ranktop);
-			rankbot=Array.reverse(rankbot);
-			while (ri<currnumber){
-				if(ri<currXtop.length){
-					for (rr=0; rr<currXtop.length; rr++){
-						if (ranktop[rr]==ri){
-							slideorder[ri]= currfilestop[rr];
-							ri=ri+1;
-						}
-					}
-				}
-				else if (ri>=currXtop.length){
-					for (rr=0; rr<currXbot.length; rr++){
-						if (rankbot[rr]==ri){
-							slideorder[ri]= currfilesbot[rr];
-							ri=ri+1;
-						}
-					}
-				}
-			}	
-		}		
-		
-		print("\\Clear");
-		Array.print(slideorder);
-		selectWindow("Log");
-		saveAs(".txt", path_temp+"_Slide_"+ currslide +"_ordered.txt");
-		print("Ordering complete!");
-		print("Renaming image files to match sectioning order...");
-		slnum=IJ.pad(currslide, 2);							//padded slide number (e.g. 03 or 15)
-
-
-		// rename files based on stage coordinates and slide order
-		for (i = 0; i < currnumber ; i++) { 
-			imnum=IJ.pad(i+1, 2); 							//padded image number 
-			oldname=path_data+slideorder[i];
-			//oldname=replace(oldname,".nd2", "_re.nd2");
-			newname=path_data+"Slide"+slnum+"_Image"+imnum+".nd2";
-			File.rename(oldname, newname);  
+			run("Bio-Formats Macro Extensions");
+			Ext.setId(path_data + image_list[j]);
+			Ext.getMetadataValue("dXPos", XNum);
+			Ext.getMetadataValue("dYPos", YNum);
+			allcoordinatesX[j]=XNum;
+			allcoordinatesY[j]=YNum;
+			Ext.close();
 		}
 		close("*");
+
+		//FIND HOW MANY IMAGES THERE ARE ON EACH SLIDE
+		print("\\Clear");
+		Array.print(slide);
+		selectWindow("Log");
+		saveAs(".txt", path_temp+"_Slides.txt");
+		maxslide = Array.findMaxima(slide, 0);
+		maxslide = slide[maxslide[0]];				//select first index if multiple maxima are found
+		imagesonslide = newArray(maxslide);
+		imagesonslide = Array.fill(imagesonslide, 0);
+		for (uu=0; uu<slide.length; uu++){
+			s=slide[uu];
+			imagesonslide[s-1]= imagesonslide[s-1]+1; 
+		}
+		print("\\Clear");
+		Array.print(imagesonslide);		//contains number of images for each slide
+		selectWindow("Log");
+		saveAs(".txt", path_temp+"_Images_per_Slide.txt");	
+
+		//SAVE COORDINATES AND SEPARATE BOT vs TOP ROW
+		// slide coordinate range in Nikon slide scanner: 
+		//x: ~29000 - 82000
+		//y: ~20000 - 40500
+		for(tt=0; tt<image_list.length; tt++){
+			allcoordinatesX[tt]=parseInt(allcoordinatesX[tt]);
+			allcoordinatesY[tt]=parseInt(allcoordinatesY[tt]); 
+		}
+		print("\\Clear");
+		Array.print(allcoordinatesX);
+		selectWindow("Log");
+		saveAs(".txt", path_temp+"_Coordinates_X.txt");
+		print("\\Clear");
+		Array.print(allcoordinatesY);
+		selectWindow("Log");
+		saveAs(".txt", path_temp+"_Coordinates_Y.txt");
+
+
+		//sort images based on in which row on the slide they are
+		SlideRow = newArray(image_list.length);
+		Y_row_low = 25000;								
+		Y_row_high = 35000;
+		tolerance = 5000;
+		Y_row_low_max=Y_row_low+tolerance;	// 30000
+		
+		//section order: up
+		if ((sectionorder=="Left and Up") || (sectionorder=="Right and Up")) {
+			//print ("sectionorder up");
+			errorcount=0;
+			for(rr=0; rr<image_list.length; rr++){
+				if(allcoordinatesY[rr]<=Y_row_low_max){	// <=30000
+					SlideRow[rr]="top"; }
+				else if(allcoordinatesY[rr]>Y_row_low_max) {	// >30000
+					SlideRow[rr]="bottom"; }
+				else{
+					SlideRow[rr]="bottom";				//assign "bottom" if can't be assigned
+					errorcount=errorcount+1;
+				}
+			}
+		}
+		//section order: down
+		else if ((sectionorder=="Left and Down") || (sectionorder=="Right and Down")) {
+			//print ("sectionorder down");
+			errorcount=0;
+			for(rr=0; rr<image_list.length; rr++){
+				if(allcoordinatesY[rr]<=Y_row_low_max){	// <=30000
+					SlideRow[rr]="bottom"; }
+				else if(allcoordinatesY[rr]>Y_row_low_max) {	// >30000
+					SlideRow[rr]="top"; }
+				else{
+					SlideRow[rr]="bottom";				//assign "bottom" if can't be assigned
+					errorcount=errorcount+1;
+				}
+			}
+		}
+
+		print("\\Clear");
+		Array.print(SlideRow);
+		selectWindow("Log");
+		saveAs(".txt", path_temp+"_Coordinates_Rows.txt");
+		print("\\Clear");
+		print("Extracting stage coordinates of images...");
+		Array.print(allcoordinatesX);
+		Array.print(allcoordinatesY);
+		Array.print(SlideRow);
+		Array.print(imagesonslide);
+		print("Metadata extraction complete! Image stage coordinates saved!");
+		if(errorcount>0){
+			print("Warning: " + errorcount + " images could not be assigned to either top or bottom row of slide!");	
+		}
+	}	 
+	//---------------------------------------------------------------------------------------------------------------------------
+
+	//Rename files to match slide order using stage coordinates
+	print("Ordering files based on stage coordinates...");
+	//get images into correct order
+	for (mm=0; mm<imagesonslide.length; mm++){	//loop through all slides
+		if(imagesonslide[mm]>0){				//if there are more than 0 images on slide mm
+			currslide = mm+1;					//current slide number
+			//print(currslide);
+			currnumber = imagesonslide[mm];		//number of images on current slide
+			//print(currnumber);
+			currfiles = newArray(currnumber);
+			currX = newArray(currnumber);
+			currrow = newArray(currnumber);
+			for (nn=0; nn<currnumber; nn++){
+				for (oo=0; oo<slide.length; oo++){
+					if(slide[oo]==currslide){
+						currfiles[nn]=image_list[oo];			//filenames of images on current slide
+						currX[nn] = allcoordinatesX[oo];	//x-coordinates of images on current slide
+						currrow[nn] = SlideRow[oo];			//row information of images on current slide
+						nn=nn+1;
+						slide[oo] = NaN; 
+					}	
+				}
+			}			
+			currXtop = newArray(currrow.length);		//get X coordinates for images on current slide and split into a top and bottom list
+			currXtop = Array.fill(currXtop, 0);
+			currfilestop = newArray(currrow.length);
+			currfilestop = Array.fill(currfilestop, 0);
+			currXbot = newArray(currrow.length);
+			currXbot = Array.fill(currXbot, 0);
+			currfilesbot = newArray(currrow.length);
+			currfilesbot = Array.fill(currfilesbot, 0);
+				
+			for (pp=0; pp<currrow.length; pp++){
+				if (currrow[pp]=="top"){
+					//print("top detected");
+					currXtop[pp]=currX[pp];
+					currfilestop[pp]=currfiles[pp];
+				}
+				else if (currrow[pp]=="bottom"){
+					//print("bottom detected");
+					currXbot[pp]=currX[pp];
+					currfilesbot[pp]=currfiles[pp];
+					//print(currXbot[pp]);
+				}
+			}
+			currXtop = Array.deleteValue(currXtop, 0);
+			currXbot = Array.deleteValue(currXbot, 0);
+			currfilestop = Array.deleteValue(currfilestop, 0);
+			currfilesbot = Array.deleteValue(currfilesbot, 0);
+					
+			//sort images based on X coordinates
+			ranktop = Array.rankPositions(currXtop); 
+			rankbot = Array.rankPositions(currXbot);
+			for (u=0; u<rankbot.length;u++){				//continuous ranks
+				rankbot[u] = rankbot[u]+ranktop.length;
+			}
+			slideorder = newArray(currnumber);
+			ri = 0;
+			
+			//section order: left
+			if ((sectionorder=="Left and Up") || (sectionorder=="Left and Down")) {
+				//print ("sectionorder left");
+				while (ri<currnumber){
+					if(ri<currXtop.length){
+						for (rr=0; rr<currXtop.length; rr++){
+							if (ranktop[rr]==ri){
+								slideorder[ri]= currfilestop[rr];
+								ri=ri+1;
+							}
+						}
+					}
+					else if (ri>=currXtop.length){
+						for (rr=0; rr<currXbot.length; rr++){
+							if (rankbot[rr]==ri){
+								slideorder[ri]= currfilesbot[rr];
+								ri=ri+1;
+							}
+						}
+					}
+				}	
+			}		
+	
+			//section order: right
+			else if ((sectionorder=="Right and Up") || (sectionorder=="Right and Down")) {
+				//print ("sectionorder right");
+				ranktop=Array.reverse(ranktop);
+				rankbot=Array.reverse(rankbot);
+				while (ri<currnumber){
+					if(ri<currXtop.length){
+						for (rr=0; rr<currXtop.length; rr++){
+							if (ranktop[rr]==ri){
+								slideorder[ri]= currfilestop[rr];
+								ri=ri+1;
+							}
+						}
+					}
+					else if (ri>=currXtop.length){
+						for (rr=0; rr<currXbot.length; rr++){
+							if (rankbot[rr]==ri){
+								slideorder[ri]= currfilesbot[rr];
+								ri=ri+1;
+							}
+						}
+					}
+				}	
+			}		
+		
+			print("\\Clear");
+			Array.print(slideorder);
+			selectWindow("Log");
+			saveAs(".txt", path_temp+"_Slide_"+ currslide +"_ordered.txt");
+			print("Ordering complete!");
+			print("Renaming image files to match sectioning order...");
+			slnum=IJ.pad(currslide, 2);							//padded slide number (e.g. 03 or 15)
+	
+	
+			// rename files based on stage coordinates and slide order
+			for (i = 0; i < currnumber ; i++) { 
+				imnum=IJ.pad(i+1, 2); 							//padded image number 
+				oldname=path_data+slideorder[i];
+				//oldname=replace(oldname,".nd2", "_re.nd2");
+				newname=path_data+"Slide"+slnum+"_Image"+imnum+".nd2";
+				File.rename(oldname, newname);  
+			}
+			close("*");
+		}
 	}
+	
+	print("Renaming complete!");
+
 }
 
-print("Renaming complete!");
 
+else if (FileOrdering=="Alphanumeric"){
+	print("Files are named following sectioning order"); 
+}
 
 //==============================================================================================================================================================
 //Segment images
@@ -603,7 +625,7 @@ print("Manual segmentation parameters saved. Segmenting images ...");
 cnt=0;
 for (ss=0; ss<image_list_manual.length; ss++){
 	ImageStart = getTime();		
-	run("Bio-Formats Windowless Importer", "open=[" + path_data + replace(image_list_manual[ss],".tif",".nd2") + "] color_mode=Default rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT");
+	run("Bio-Formats Windowless Importer", "open=[" + path_data + replace(image_list_manual[ss],".tif",filetype) + "] color_mode=Default rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT");
 	Stack.setChannel(RefCh);
 	currImg = getTitle();
 	title = replace(image_list_manual[ss], ".tif", ""); 
