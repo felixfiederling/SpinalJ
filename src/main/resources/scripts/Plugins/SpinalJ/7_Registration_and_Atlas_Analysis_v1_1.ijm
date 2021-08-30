@@ -19,8 +19,9 @@ run("Colors...", "foreground=white background=black selection=yellow");
 run("Clear Results"); 
 run("Close All");
 
-SpinalJVer ="SpinalJ 0.2.0";
-ReleaseDate= "December 11, 2020";
+SpinalJVer ="SpinalJ 1.1";
+ReleaseDate= "4/28/2021";
+
 
 #@ File[] listOfPaths(label="Select experiment/spinal cord folders (/_Output/):", style="both")
 #@ File(label="Select spinal cord atlas to be used:", style="directory") AtlasDir
@@ -50,7 +51,6 @@ OutputType = "Coronal";
 // Options for Custom Templates and Registration - Take these out and only active for ADVANCED MODE (e.g. 5b)
 //#@ boolean(label="Use a custom template for registration?", value = false, description="Provide custom template for specific projects.") SpecificTemplateON
 //#@ File(label="Custom template file:", value = "C:/select folder", style="file", value = " ", description="Only required if performing specialized registration using a modified template.") AtlasTemplateLocation
-//#@ boolean(label="Mask tissue to assist alignment?", value = false, description="Creates a binary mask of brain or tissue region to be aligned.") ExpBrainMaskON
 //#@ boolean(label="Provide a custom mask to assist alignment?", value = false, description="Uses a provided binary mask in the atlas space to assist alignment.") AtlasMaskON
 //#@ File(label="Custom template mask file:", value = "C:/select folder", style="file", value = " ", description="Only required if performing an alignment with a custom template.") AtlasMaskLocation
 
@@ -119,7 +119,7 @@ for (FolderNum=0; FolderNum<listOfPaths.length; FolderNum++) {
 
 			// 1: Exeperiment Parameter moved to Analysis Settings.csv			
 			SampleType = "Mouse Spinal Cord";
-			AnalysisType = "Whole Brain";
+			AnalysisType = "Whole Cord";
 			FinalRes = parseFloat(LocateValue(ParamFileRows, "Final Resolution"));
 			RegRes = FinalRes;
 			AlignCh = parseInt(LocateValue(ParamFileRows, "DAPI/Autofluorescence channel"));
@@ -181,13 +181,7 @@ for (FolderNum=0; FolderNum<listOfPaths.length; FolderNum++) {
 
 			Trim = parseInt(LocateValue(ParamFileRows, "Trim"));
 
-			//Version checker to avoid issues with older parameter files
-			//BrainJV = parseInt(LocateValue(ParamFileRows, "BrainJ Version"));
-			
-			//if (BrainJV == 0) {
-			//	exit("Analysis settings created using an earlier version of BrainJ.\n \nPlease re-run step 4: Set Analysis Settings, for this brain.");
-			//}
-
+	
 	// Read in Template/Annotation Information File
 			AtlasDir = AtlasDir + "/";
 			if (File.exists(AtlasDir + "Annotation_Info.csv")) {
@@ -211,14 +205,14 @@ for (FolderNum=0; FolderNum<listOfPaths.length; FolderNum++) {
 			Modified_IDs = LocateValue(ParamFileRows, "ModifiedIDs");
 
 			//Directory Shortcuts
-			RegDir = input + "3_Registered_Sections/";
-			CellPointsDir = input + "4_Processed_Sections/Detected_Cells/";
-			CellCountOut = input + "4_Processed_Sections/Detected_Cells/";
-			CellIntensityOut = input + "4_Processed_Sections/Measured_Intensities/";
-			ResampledCellPointsDir = input + "4_Processed_Sections/Resampled_Cells/";
+			RegDir = input + "2_Registered_Sections/";
+			CellPointsDir = input + "3_Processed_Sections/Detected_Cells/";
+			CellCountOut = input + "3_Processed_Sections/Detected_Cells/";
+			CellIntensityOut = input + "3_Processed_Sections/Measured_Intensities/";
+			ResampledCellPointsDir = input + "3_Processed_Sections/Resampled_Cells/";
 
-			TransformedProjectionDataOut = input + "5_Analysis_Output/Projections_Transformed_To_Atlas_Space/";
-			TransformedRawDataOut = input + "5_Analysis_Output/Raw_Data_Transformed_To_Atlas_Space/";
+			TransformedProjectionDataOut = input + "4_Analysis_Output/Projections_Transformed_To_Atlas_Space/";
+			TransformedRawDataOut = input + "4_Analysis_Output/Raw_Data_Transformed_To_Atlas_Space/";
 			q ="\"";
 
 
@@ -245,16 +239,16 @@ if (SectionRegON == true) {
 	// check if already run, otherwise create output directory
 	regchannels = newArray(0);
 
-	if (File.exists(input + "3_Registered_Sections")) {
+	if (File.exists(input + "2_Registered_Sections")) {
 			regchannels = getFileList(RegDir);
 			if (regchannels.length >= ChNum) {
 				//Note this is counting all files currently not just folders - should be folders only			
-				print("Section registration already performed. Delete 3_Registered_Sections folder if you wish to rerun.");
+				print("Section registration already performed. Delete 2_Registered_Sections folder if you wish to rerun.");
 			} 
 	} 
-	if (File.exists(input + "3_Registered_Sections") == 0 || (File.exists(input + "3_Registered_Sections") && regchannels.length < channels.length )) {
+	if (File.exists(input + "2_Registered_Sections") == 0 || (File.exists(input + "2_Registered_Sections") && regchannels.length < channels.length )) {
 		
-		File.mkdir(input + "3_Registered_Sections");
+		File.mkdir(input + "2_Registered_Sections");
 
 		/////////////// Registration ////////
 
@@ -262,8 +256,8 @@ if (SectionRegON == true) {
 	
 		// Create Cell Count folder if Manual Cell Counting Used
 		if (CellDetMethod == "Manual Cell Count"){
-			File.mkdir(input + "4_Processed_Sections");
-			File.mkdir(input + "4_Processed_Sections/Detected_Cells");
+			File.mkdir(input + "3_Processed_Sections");
+			File.mkdir(input + "3_Processed_Sections/Detected_Cells");
 		}
 		
 		//finish
@@ -309,21 +303,21 @@ if (AtlasAnalysisON == true ||  ProjectionTransformationON == true || CellAnalys
 	Transformix = CreateCmdLine(Elastixdir + "transformix.exe");
 	
 	//Make Directories
-	File.mkdir(input + "4_Processed_Sections");
-	File.mkdir(input + "4_Processed_Sections/Resampled_Cells");
-	File.mkdir(input + "5_Analysis_Output");
-	File.mkdir(input + "5_Analysis_Output/Temp");
-	File.mkdir(input + "5_Analysis_Output/Temp/Template_aligned");
-	File.mkdir(input + "5_Analysis_Output/Transform_Parameters");
-	File.mkdir(input + "5_Analysis_Output/Transform_Parameters/OriginPoints");
-	File.mkdir(input + "5_Analysis_Output/Temp/InvOut");
+	File.mkdir(input + "3_Processed_Sections");
+	File.mkdir(input + "3_Processed_Sections/Resampled_Cells");
+	File.mkdir(input + "4_Analysis_Output");
+	File.mkdir(input + "4_Analysis_Output/Temp");
+	File.mkdir(input + "4_Analysis_Output/Temp/Template_aligned");
+	File.mkdir(input + "4_Analysis_Output/Transform_Parameters");
+	File.mkdir(input + "4_Analysis_Output/Transform_Parameters/OriginPoints");
+	File.mkdir(input + "4_Analysis_Output/Temp/InvOut");
 	
 	for (Ch_i = 0; Ch_i < 3; Ch_i++) {
 		if (CellChans[Ch_i] > 0) {
-			File.mkdir(input + "5_Analysis_Output/Temp/Ch"+CellChans[Ch_i]+"Points");
+			File.mkdir(input + "4_Analysis_Output/Temp/Ch"+CellChans[Ch_i]+"Points");
 		}	
 		if (ProChans[Ch_i] > 0) {
-			File.mkdir(input + "5_Analysis_Output/Temp/Transformed_C"+ProChans[Ch_i]+"_Binary_Out");
+			File.mkdir(input + "4_Analysis_Output/Temp/Transformed_C"+ProChans[Ch_i]+"_Binary_Out");
 		}	
 	}
 
@@ -337,13 +331,13 @@ if (AtlasAnalysisON == true ||  ProjectionTransformationON == true || CellAnalys
 		TemplateMask = CreateCmdLine(AtlasMaskLocation);
 	}	
 
-	AlignOut = CreateCmdLine(input + "5_Analysis_Output/Temp/Template_aligned/");
+	AlignOut = CreateCmdLine(input + "4_Analysis_Output/Temp/Template_aligned/");
 	Template = CreateCmdLine(AtlasDir + "Template.tif");
 	
 	ExpBrain = CreateCmdLine(RegDir + "DAPI_25.tif");
 	ExpBrainMask = CreateCmdLine(RegDir + "DAPI_25_Mask.tif");
 	AnnotationImage = CreateCmdLine(AtlasDir + "Annotation.tif");
-	AnnotationImageOut = CreateCmdLine(input + "5_Analysis_Output/Temp/");
+	AnnotationImageOut = CreateCmdLine(input + "4_Analysis_Output/Temp/");
 	
 	Affine = CreateCmdLine(AtlasDir + "/Registration_Parameters/MB49_Param_Affine.txt");
 	BSpline = CreateCmdLine(AtlasDir + "/Registration_Parameters/MB49_Param_BSpline.txt");
@@ -359,15 +353,15 @@ if (AtlasAnalysisON == true ||  ProjectionTransformationON == true || CellAnalys
 		InvBSpline = CreateCmdLine(AtlasDir + "/Registration_Parameters/MB49_Region_Param_BSpline_Inv.txt");
 	} 
 	
-	TransP = CreateCmdLine(input + "5_Analysis_Output/Transform_Parameters/Cell_TransformParameters.1.txt");
-	TransPMod = CreateCmdLine(input + "5_Analysis_Output/Temp/Template_aligned/ModifiedTransformParameters.1.txt");
-	InvTransPMod = CreateCmdLine(input + "5_Analysis_Output/Transform_Parameters/ProjectionTransformParameters.txt");
-	OriginPoints = CreateCmdLine(input + "5_Analysis_Output/Transform_Parameters/OriginPoints/OriginPoints.txt");
+	TransP = CreateCmdLine(input + "4_Analysis_Output/Transform_Parameters/Cell_TransformParameters.1.txt");
+	TransPMod = CreateCmdLine(input + "4_Analysis_Output/Temp/Template_aligned/ModifiedTransformParameters.1.txt");
+	InvTransPMod = CreateCmdLine(input + "4_Analysis_Output/Transform_Parameters/ProjectionTransformParameters.txt");
+	OriginPoints = CreateCmdLine(input + "4_Analysis_Output/Transform_Parameters/OriginPoints/OriginPoints.txt");
 	
-	AlResult = CreateCmdLine(input + "5_Analysis_Output/Temp/Template_aligned/result.1.mhd");
+	AlResult = CreateCmdLine(input + "4_Analysis_Output/Temp/Template_aligned/result.1.mhd");
 	
-	OriginOut = CreateCmdLine(input + "5_Analysis_Output/Transform_Parameters/OriginPoints/");
-	InvOut = CreateCmdLine(input + "5_Analysis_Output/Temp/InvOut/");
+	OriginOut = CreateCmdLine(input + "4_Analysis_Output/Transform_Parameters/OriginPoints/");
+	InvOut = CreateCmdLine(input + "4_Analysis_Output/Temp/InvOut/");
 	
 	TransfromDAPIAF = false;
 	TransfromCh1 = true;
@@ -379,7 +373,7 @@ if (AtlasAnalysisON == true) {
 //if Isolated Region based analysis - create masked template and mask - 
 // Already created by Reformat Series or Seperate Tool
 //if (AnalysisType == "Isolated Region/s") {
-//	CanvasDim = CreateIsolatedTemplateRegion(RegionNumbers, AtlasDir, input + "5_Analysis_Output");	
+//	CanvasDim = CreateIsolatedTemplateRegion(RegionNumbers, AtlasDir, input + "4_Analysis_Output");	
 //}
 					
 // Create Sagittal25 DAPI/AF image from raw data
@@ -388,14 +382,14 @@ if (AtlasAnalysisON == true) {
 		print("  Registration volume of DAPI/Autofluorecence has already been created.");
 	} else {			
 		print("Creating 25um isotropic volume...");
-		rawcoronalto3DsagittalDAPI(input+"/3_Registered_Sections/"+AlignCh, input+"/3_Registered_Sections", "DAPI_25", AtlasResXY, BGround, ZCut);
+		rawcoronalto3DsagittalDAPI(input+"/2_Registered_Sections/"+AlignCh, input+"/2_Registered_Sections", "DAPI_25", AtlasResXY, BGround, ZCut);
 		print("  Registration volume created.");
 	}
 	
 	CreateDAPIMask(input);
 	
 	// Create Origin Points
-	if (File.exists(input + "5_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv") == 0) {
+	if (File.exists(input + "4_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv") == 0) {
 		CreateOriginPoints();
 	}
 
@@ -429,10 +423,10 @@ if (AtlasAnalysisON == true) {
 			setSlice(i);
 			run("Clear", "slice");
 		}
-		save(input + "5_Analysis_Output/Temp/Modified_Template_Mask.tif");
+		save(input + "4_Analysis_Output/Temp/Modified_Template_Mask.tif");
 		close();
 		//update locations and turn on AtlasMask
-		TemplateMask = CreateCmdLine(input + "5_Analysis_Output/Temp/Modified_Template_Mask.tif");
+		TemplateMask = CreateCmdLine(input + "4_Analysis_Output/Temp/Modified_Template_Mask.tif");
 		AtlasMaskON = true;
 	}
 
@@ -441,7 +435,7 @@ if (AtlasAnalysisON == true) {
 	AAstarttime = getTime();
 	print("Performing atlas alignment...");
 		
-	if (File.exists(input + "5_Analysis_Output/Transform_Parameters/Cell_TransformParameters.1.txt")) {
+	if (File.exists(input + "4_Analysis_Output/Transform_Parameters/Cell_TransformParameters.1.txt")) {
 			print("     Alignment to atlas already performed, using existing transform parameters.");
 		} else {
 		
@@ -463,7 +457,7 @@ if (AtlasAnalysisON == true) {
 			runCmd = CreateCmdLine(input + "Elastixrun.bat");
 			exec(runCmd);
 				
-			if (File.exists(input + "5_Analysis_Output/Temp/Template_aligned/TransformParameters.1.txt")) {
+			if (File.exists(input + "4_Analysis_Output/Temp/Template_aligned/TransformParameters.1.txt")) {
 				print("     Template alignment successful.");
 				AlignParamCheck = 0;
 			} else {
@@ -488,7 +482,7 @@ if (AtlasAnalysisON == true) {
 				runCmd = CreateCmdLine(input + "Elastixrun.bat");
 				exec(runCmd);
 								
-				if (File.exists(input + "5_Analysis_Output/Temp/Template_aligned/TransformParameters.1.txt")) {
+				if (File.exists(input + "4_Analysis_Output/Temp/Template_aligned/TransformParameters.1.txt")) {
 					print("     Template alignment successful on second attempt.");
 					AlignParamCheck = 1;
 
@@ -515,7 +509,7 @@ if (AtlasAnalysisON == true) {
 					exec(runCmd);
 					
 					
-					if (File.exists(input + "5_Analysis_Output/Template_aligned/TransformParameters.1.txt")) {
+					if (File.exists(input + "4_Analysis_Output/Template_aligned/TransformParameters.1.txt")) {
 						print("     Template alignment successful on third attempt.");
 						AlignParamCheck = 2;
 					} else {
@@ -528,7 +522,7 @@ if (AtlasAnalysisON == true) {
 						exec(runCmd);
 						
 						
-						if (File.exists(input + "5_Analysis_Output/Template_aligned/TransformParameters.1.txt")) {
+						if (File.exists(input + "4_Analysis_Output/Template_aligned/TransformParameters.1.txt")) {
 							print("     Template alignment successful on final attempt.");
 							AlignParamCheck = 2;
 						} else {
@@ -541,11 +535,11 @@ if (AtlasAnalysisON == true) {
 		close("*");
 		
 		//Count number of registered slices
-		RegSectionsCount = getFileList(input+ "/3_Registered_Sections/1/");	
+		RegSectionsCount = getFileList(input+ "/2_Registered_Sections/1/");	
 		RegSectionsCount = RegSectionsCount.length;
 
 		// import transformed template
-		run("MHD/MHA...", "open=["+ input + "5_Analysis_Output/Temp/Template_aligned/result.1.mhd]");
+		run("MHD/MHA...", "open=["+ input + "4_Analysis_Output/Temp/Template_aligned/result.1.mhd]");
 		run("Enhance Contrast...", "saturated=0.01 process_all use");
 		run("Apply LUT", "stack");
 		if (OutputType == "Sagittal") {
@@ -565,19 +559,19 @@ if (AtlasAnalysisON == true) {
 		//Merge and save
 		run("Merge Channels...", "c1=ExpBrain c2=Result create");
 		run("Size...", "depth="+RegSectionsCount+" interpolation=None");
-		saveAs("Tiff", input + "5_Analysis_Output/Template_Brain_Aligned.tif");
-		close("Template_Brain_Aligned.tif");
+		saveAs("Tiff", input + "4_Analysis_Output/Template_Cord_Aligned.tif");
+		close("Template_Cord_Aligned.tif");
 		
 		//Clean up
-		a = File.rename(input + "5_Analysis_Output/Temp/Template_aligned/TransformParameters.1.txt", input + "5_Analysis_Output/Transform_Parameters/Cell_TransformParameters.1.txt");
-		a = File.copy(input + "5_Analysis_Output/Temp/Template_aligned/TransformParameters.0.txt", input + "5_Analysis_Output/Transform_Parameters/Cell_TransformParameters.0.txt");
-		UpdateTransParamLocation0 (input + "5_Analysis_Output/Transform_Parameters/Cell_TransformParameters.1.txt");
+		a = File.rename(input + "4_Analysis_Output/Temp/Template_aligned/TransformParameters.1.txt", input + "4_Analysis_Output/Transform_Parameters/Cell_TransformParameters.1.txt");
+		a = File.copy(input + "4_Analysis_Output/Temp/Template_aligned/TransformParameters.0.txt", input + "4_Analysis_Output/Transform_Parameters/Cell_TransformParameters.0.txt");
+		UpdateTransParamLocation0 (input + "4_Analysis_Output/Transform_Parameters/Cell_TransformParameters.1.txt");
 		
 		DeleteFile(input+"Elastixrun.bat");
 		collectGarbage(10, 4);
 
 		//DONT Delete Template Aligned until you have moved AFFINE transform parameters AND edited CELL_Transformparameters to contain this new location
-		DeleteDir(input + "5_Analysis_Output/Temp/Template_aligned/");
+		DeleteDir(input + "4_Analysis_Output/Temp/Template_aligned/");
 		
 		}
 		AAendtime = getTime();
@@ -586,7 +580,7 @@ if (AtlasAnalysisON == true) {
 
 	//Transform Origin Point
 	print("Transforming origin points to atlas...");
-	if (File.exists(input + "5_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv")) {
+	if (File.exists(input + "4_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv")) {
 		print("  Origin points have already been transformed.");
 	} else {
 					
@@ -600,7 +594,7 @@ if (AtlasAnalysisON == true) {
 		//CleanUp Origin Point to .csv
 		
 
-		E49TransPointsToZYXcsv(input + "5_Analysis_Output/Transform_Parameters/OriginPoints/outputpoints.txt", input + "5_Analysis_Output/Transform_Parameters/OriginPoints", "Origin_Output_Points");
+		E49TransPointsToZYXcsv(input + "4_Analysis_Output/Transform_Parameters/OriginPoints/outputpoints.txt", input + "4_Analysis_Output/Transform_Parameters/OriginPoints", "Origin_Output_Points");
 		}
 	print("---------------------------------------------------------------------------------------------------------------------");
 }
@@ -632,13 +626,13 @@ if ((CellAnalysisON == true && CellDetMethod == "Machine Learning Segmentation w
 
 		ClassDir = input + "Ilastik_Projects/";
 		
-		File.mkdir(input + "4_Processed_Sections");
-		File.mkdir(input + "4_Processed_Sections/Enhanced");
-		File.mkdir(input + "4_Processed_Sections/Probability_Masks");
-		File.mkdir(input + "4_Processed_Sections/Object_Detection_Validation");
+		File.mkdir(input + "3_Processed_Sections");
+		File.mkdir(input + "3_Processed_Sections/Enhanced");
+		File.mkdir(input + "3_Processed_Sections/Probability_Masks");
+		File.mkdir(input + "3_Processed_Sections/Object_Detection_Validation");
 		
 		if (ilastikmaskON == true) {
-			File.mkdir(input + "4_Processed_Sections/Ilastik_Binary_Masks");
+			File.mkdir(input + "3_Processed_Sections/Ilastik_Binary_Masks");
 		}
 
 
@@ -693,9 +687,9 @@ if (CellAnalysisON == true && CellDetMethod == "Find Maxima") {
 		print("  Cell analysis parameters. Background Subtraction: "+ BGSZ + ". Cell area (um2): "+ size1 +", "+ size2 +", "+size3+".");
 		//" Maxima intensity threshold: "+ MaximaInt1 +".");
 						
-		File.mkdir(input + "4_Processed_Sections");
-		File.mkdir(input + "4_Processed_Sections/Enhanced");
-		File.mkdir(input + "4_Processed_Sections/Object_Detection_Validation");
+		File.mkdir(input + "3_Processed_Sections");
+		File.mkdir(input + "3_Processed_Sections/Enhanced");
+		File.mkdir(input + "3_Processed_Sections/Object_Detection_Validation");
 		File.mkdir(CellCountOut);		
 		File.mkdir(CellIntensityOut);
 				
@@ -749,8 +743,8 @@ if (ProjectionTransformationON == true && ProjDetMethod == "Binary Threshold") {
 	
 	print("Performing background subtraction for projection analysis...");
 	print("  Channels used for detection: "+ ProCh + " " + ProCh2 + " " + ProCh3 + ".");
-	File.mkdir(input + "4_Processed_Sections");
-	File.mkdir(input + "4_Processed_Sections/Enhanced");
+	File.mkdir(input + "3_Processed_Sections");
+	File.mkdir(input + "3_Processed_Sections/Enhanced");
 				
 	//Process channel 1 // stack by stack times out, so have to process slice by slice
 	for (Ch_i = 0; Ch_i < 3; Ch_i++) {
@@ -775,13 +769,13 @@ if (ProjectionTransformationON == true && ProjDetMethod == "Binary Threshold") {
 if (CellAnalysisON == true && CellDetMethod != "No Cell Analysis") {	
 	print("Resampling cell locations to atlas...");
 
-	if (File.exists(input + "5_Analysis_Output/Transform_Parameters/Cell_TransformParameters.1.txt") == 0 ) {
+	if (File.exists(input + "4_Analysis_Output/Transform_Parameters/Cell_TransformParameters.1.txt") == 0 ) {
    		exit("Atlas registration files cannot be found - ensure atlas registration step has been performed.");
    	}
 
 	//check and make directory
-	if (File.exists(input + "5_Analysis_Output/Cell_Analysis") == 0) {
-		File.mkdir(input + "5_Analysis_Output/Cell_Analysis");
+	if (File.exists(input + "4_Analysis_Output/Cell_Analysis") == 0) {
+		File.mkdir(input + "4_Analysis_Output/Cell_Analysis");
 	}
 	
 	//note for manual counting
@@ -793,8 +787,8 @@ if (CellAnalysisON == true && CellDetMethod != "No Cell Analysis") {
 	}
 		
 	//Resampled cells directory not always being made? Check and if not there, create.
-	if (File.exists(input + "4_Processed_Sections/Resampled_Cells") == 0) {
-		File.mkdir(input + "4_Processed_Sections/Resampled_Cells");
+	if (File.exists(input + "3_Processed_Sections/Resampled_Cells") == 0) {
+		File.mkdir(input + "3_Processed_Sections/Resampled_Cells");
 	}
 	
 	CountFiles = getFileList(CellPointsDir);
@@ -867,35 +861,35 @@ if (CellAnalysisON == true && CellDetMethod != "No Cell Analysis") {
 		// Read in Origin Point
 		//Get index and origin - this is a negative value of a point transformed from the first slice of exp brain
 		//Open transformed seed point
-	OpenAsHiddenResults(input + "5_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv");
+	OpenAsHiddenResults(input + "4_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv");
 	IndexOrigin=parseInt(getResult("Z", 0));
 	IndexEnd=parseInt(getResult("Z", 1));
 	close("Results");
 
 // Ensure TransformParameters.0 is referring to correct location
 
-	UpdateTransParamLocation0(input + "5_Analysis_Output/Transform_Parameters/Cell_TransformParameters.1.txt");
+	UpdateTransParamLocation0(input + "4_Analysis_Output/Transform_Parameters/Cell_TransformParameters.1.txt");
 
 // Transform Cell Points
 	for (Ch_i = 0; Ch_i < 3; Ch_i++) {
 		if (CellChans[Ch_i] > 0) {
 			print("Transforming channel "+CellChans[Ch_i]+" cell locations to atlas space...");
 
-			if (File.exists(input + "5_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Detected_Cells_Summary.csv")) {
-				print("     Cell point transformation already performed. If you wish to rerun, delete directory: "+input + "5_Analysis_Output/Cell_Analysis/");
+			if (File.exists(input + "4_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Detected_Cells_Summary.csv")) {
+				print("     Cell point transformation already performed. If you wish to rerun, delete directory: "+input + "4_Analysis_Output/Cell_Analysis/");
 			} else {
 			
 				CellPoints = CreateCmdLine(ResampledCellPointsDir + "Cell_Points_Ch"+CellChans[Ch_i]+".txt");
-				CellOut = CreateCmdLine(input + "5_Analysis_Output/Temp/Ch"+CellChans[Ch_i]+"Points/");
+				CellOut = CreateCmdLine(input + "4_Analysis_Output/Temp/Ch"+CellChans[Ch_i]+"Points/");
 				
 				TransformCellsCmd = Transformix +" -def "+CellPoints+" -tp "+TransP+" -out "+CellOut;
 				CreateBatFile (TransformCellsCmd, input, "TransformixRun");
 				runCmd = CreateCmdLine(input + "TransformixRun.bat");
 				exec(runCmd);
 				
-				E49TransPointsToZYXcsv(input + "5_Analysis_Output/Temp/Ch"+CellChans[Ch_i]+"Points/outputpoints.txt", input + "5_Analysis_Output/Cell_Analysis", "C"+CellChans[Ch_i]+"_Aligned_Points");
+				E49TransPointsToZYXcsv(input + "4_Analysis_Output/Temp/Ch"+CellChans[Ch_i]+"Points/outputpoints.txt", input + "4_Analysis_Output/Cell_Analysis", "C"+CellChans[Ch_i]+"_Aligned_Points");
 				
-				DeleteDir(input + "5_Analysis_Output/Temp/Ch"+CellChans[Ch_i]+"Points/");
+				DeleteDir(input + "4_Analysis_Output/Temp/Ch"+CellChans[Ch_i]+"Points/");
 				print("Cell locations successfully transformed to atlas space.");
 			}
 			
@@ -912,19 +906,19 @@ if (CellAnalysisON == true && CellDetMethod != "No Cell Analysis") {
 		if (CellChans[Ch_i] > 0) {
 			print("  Creating atlas region annotated count table for channel "+CellChans[Ch_i]+" ...");
 			
-			if (File.exists(input + "5_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Detected_Cells_Summary.csv")) {
-				print("  Cell summary already performed. If you wish to rerun, delete directory: "+input + "5_Analysis_Output/Cell_Analysis/");
+			if (File.exists(input + "4_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Detected_Cells_Summary.csv")) {
+				print("  Cell summary already performed. If you wish to rerun, delete directory: "+input + "4_Analysis_Output/Cell_Analysis/");
 			} else {
 				if (AtlasType == "Spinal Cord") {
-					AnnotatePointsSpinalCord(input + "5_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Aligned_Points.csv", AtlasDir + "Annotation.tif", AtlasDir + "Atlas_Regions.csv", input + "4_Processed_Sections/Measured_Intensities/Cell_Points_with_intensities_Ch"+CellChans[Ch_i]+".csv", input + "5_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Detected_Cells_Summary.csv", input + "5_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Detected_Cells.csv",input + "5_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Detected_Cells_Segment_Summary.csv");
+					AnnotatePointsSpinalCord(input + "4_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Aligned_Points.csv", AtlasDir + "Annotation.tif", AtlasDir + "Atlas_Regions.csv", input + "3_Processed_Sections/Measured_Intensities/Cell_Points_with_intensities_Ch"+CellChans[Ch_i]+".csv", input + "4_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Detected_Cells_Summary.csv", input + "4_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Detected_Cells.csv",input + "4_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Detected_Cells_Segment_Summary.csv");
 					cleanupROI();
 					
-					DeleteFile(input + "5_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Aligned_Points.csv");			
+					DeleteFile(input + "4_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Aligned_Points.csv");			
 					print("  Annotation tables created.");
 				} else {
-					AnnotatePoints(input + "5_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Aligned_Points.csv", AtlasDir + "Annotation.tif", AtlasDir + "Atlas_Regions.csv", input + "4_Processed_Sections/Measured_Intensities/Cell_Points_with_intensities_Ch"+CellChans[Ch_i]+".csv", input + "5_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Detected_Cells_Summary.csv", input + "5_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Detected_Cells.csv");
+					AnnotatePoints(input + "4_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Aligned_Points.csv", AtlasDir + "Annotation.tif", AtlasDir + "Atlas_Regions.csv", input + "3_Processed_Sections/Measured_Intensities/Cell_Points_with_intensities_Ch"+CellChans[Ch_i]+".csv", input + "4_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Detected_Cells_Summary.csv", input + "4_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Detected_Cells.csv");
 					cleanupROI();
-					DeleteFile(input + "5_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Aligned_Points.csv");			
+					DeleteFile(input + "4_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Aligned_Points.csv");			
 					print("  Annotation tables created.");
 				}
 			}
@@ -1001,8 +995,8 @@ if (CreateCellAnalysisVisON == true) {
 	for (Ch_i = 0; Ch_i < 3; Ch_i++) {
 		if (CellChans[Ch_i] > 0) {
 			print("  Creating atlas colored cell images for channel "+CellChans[Ch_i]);
-	 		createColorCells(CellChans[Ch_i], input + "5_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Cell_Points.tif", input + "5_Analysis_Output/Cell_Analysis");
-			OverlayColorCellsOnTemplate(input + "5_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Atlas_Colored_Cells.tif", CellChans[Ch_i], input + "5_Analysis_Output/Cell_Analysis");
+	 		createColorCells(CellChans[Ch_i], input + "4_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Cell_Points.tif", input + "4_Analysis_Output/Cell_Analysis");
+			OverlayColorCellsOnTemplate(input + "4_Analysis_Output/Cell_Analysis/C"+CellChans[Ch_i]+"_Atlas_Colored_Cells.tif", CellChans[Ch_i], input + "4_Analysis_Output/Cell_Analysis");
 	 		print("  Colored cell images created.");
 		}	
 	} 	
@@ -1016,7 +1010,7 @@ if (CreateCellAnalysisVisON == true) {
 
 	HMstarttime = getTime();
 		
-	AlignDir = input + "5_Analysis_Output/";
+	AlignDir = input + "4_Analysis_Output/";
 	print("Creating cell density heatmap images...");
  	for (Ch_i = 0; Ch_i < 3; Ch_i++) {
 		if (CellChans[Ch_i] > 0) {
@@ -1068,7 +1062,7 @@ if (ProjectionTransformationON == true && ProjDetMethod != "No Projection Analys
 
 if (CreateABADensityHeatmapON == true && ProjDetMethod != "No Projection Analysis" ) {
 	HMstarttime = getTime();
-	AlignDir = input + "5_Analysis_Output/";
+	AlignDir = input + "4_Analysis_Output/";
 	print("Creating atlas density heatmaps...");
 
 	for (Ch_i = 0; Ch_i < 3; Ch_i++) {
@@ -1138,10 +1132,10 @@ if (IntensityMeasureInABAON == true) {
 
 	TransformAnnotationDataset();
 	
-	ChNum = CountSubFolders(input+ "/3_Registered_Sections/");
+	ChNum = CountSubFolders(input+ "/2_Registered_Sections/");
 
 	//Count number of registered slices
-	RegSectionsCount = getFileList(input+ "/3_Registered_Sections/1/");	
+	RegSectionsCount = getFileList(input+ "/2_Registered_Sections/1/");	
 	RegSectionsCount = RegSectionsCount.length;
 	
 	//Perform measurements
@@ -1151,7 +1145,7 @@ if (IntensityMeasureInABAON == true) {
 	
 	
 	for(j=1; j<ChNum+1; j++) {	
-	 	print(" Measuring fluorescent intensities for each brain region in channel "+j+".");
+	 	print(" Measuring fluorescent intensities for each spinal cord region in channel "+j+".");
 
 		if (AtlasType == "Spinal Cord") {
 			ProAnRes = 10; //Temp override - or leave in place
@@ -1176,9 +1170,9 @@ if (CreateIntensityMapsON == true) {
 	HMstarttime = getTime();
 	
 	//Count number of channel folders in Registered Directory
-	ChNum = CountSubFolders(input+ "/3_Registered_Sections/");
+	ChNum = CountSubFolders(input+ "/2_Registered_Sections/");
 		
-	AlignDir = input + "5_Analysis_Output/";
+	AlignDir = input + "4_Analysis_Output/";
 	print("Creating atlas map intensity images...");
  	for(j=1; j<ChNum+1; j++) {	
 	
@@ -1220,15 +1214,15 @@ print("- - - " +SpinalJVer+ " - - -");
 print("---------------------------------------------------------------------------------------------------------------------");
 
 if (AlignParamCheck > 0) {
-	print("***Note: Initial alignment to template brain using strict parameters failed.");
+	print("***Note: Initial alignment to template cord using strict parameters failed.");
 	print("   More lenient parameters were used and were successful but alignment may not be ideal. This is typically due to damaged sections"); 
-	print("   Please check quality of the registration by inspecting the Template_Brain_Aligned.tif image and correct or replace any damaged sections.");
+	print("   Please check quality of the registration by inspecting the Template_Cord_Aligned.tif image and correct or replace any damaged sections.");
 }
 
 if (CellPlotCheck > 0) {
 	print("***Note: "+CellPlotCheck+" cells could not be plotted into the atlas.");
 	print("   This is likely due to the inaccuracies in the registration, especially towards the posterior edge of the cerebellum."); 
-	print("   If you are seeing this message check the quality of the registration by inspecting the Template_Brain_Aligned.tif image.");
+	print("   If you are seeing this message check the quality of the registration by inspecting the Template_Cord_Aligned.tif image.");
 }
 selectWindow("Log");
 // time stamp log to prevent overwriting.
@@ -1362,7 +1356,7 @@ function RegisterSections() {
 
 		checkbinaryforinversion();
 		run("Analyze Particles...", "size=500000-Infinity display add");	
-		roiManager("Save", input+"/BrainROI.zip");
+		roiManager("Save", input+"/CordROI.zip");
 		run("Clear Results");
 		roiManager("Delete");
 		close();
@@ -1383,7 +1377,7 @@ function RegisterSections() {
 
 		checkbinaryforinversion();
 		run("Analyze Particles...", "size=500000-Infinity display add");
-		roiManager("Save", input+"/BrainROIsm.zip");
+		roiManager("Save", input+"/CordROIsm.zip");
 		run("Clear Results");
 		roiManager("Delete");
 		close();
@@ -1394,7 +1388,7 @@ function RegisterSections() {
 	
 	if (CropOn == true){
 		setBatchMode(false);
-		roiManager("Open", input+"/BrainROIsm.zip");
+		roiManager("Open", input+"/CordROIsm.zip");
 		roiManager("Select", 0);
 		run("Crop");
 		roiManager("Select", 0);
@@ -1407,7 +1401,7 @@ function RegisterSections() {
 	if (FullResDAPI == 0 && ChNum > 1) {
 		File.mkdir(RegDir+AlignCh);
 		rename("Ch");
-		run("Image Sequence... ", "format=TIFF save=["+input+"/3_Registered_Sections/"+AlignCh+"/0000.tif]");
+		run("Image Sequence... ", "format=TIFF save=["+input+"/2_Registered_Sections/"+AlignCh+"/0000.tif]");
 		rename("DAPI");			
 	}
 	
@@ -1454,13 +1448,13 @@ function RegisterSections() {
 	    rename("DAPI");
 	}
 	run("Properties...", "unit=micron pixel_width="+AtlasResXY+" pixel_height="+AtlasResXY+" voxel_depth="+AtlasResZ);
-	saveAs("Tiff", input+"3_Registered_Sections/DAPI_25.tif");
+	saveAs("Tiff", input+"2_Registered_Sections/DAPI_25.tif");
 
 	setAutoThreshold("Li dark");
 	run("Convert to Mask", "method=Li background=Dark calculate black");
 	run("Dilate", "stack");
 	run("Dilate", "stack");
-	saveAs("Tiff", input+"/3_Registered_Sections/DAPI_25_Mask.tif");
+	saveAs("Tiff", input+"/2_Registered_Sections/DAPI_25_Mask.tif");
 	close();
 
 	regtime = getTime();
@@ -1649,7 +1643,7 @@ function RegisterSections() {
 					
 			if (CropOn == true){
 				setBatchMode(false);
-				roiManager("Open", input+"/BrainROI.zip");
+				roiManager("Open", input+"/CordROI.zip");
 				roiManager("Select", 0);
 				run("Crop");
 				roiManager("Select", 0);
@@ -1662,7 +1656,7 @@ function RegisterSections() {
 			//saveAs("Tiff", input+"/3_Registered_Slices/Ch"+j+"_registered.tif");
 			
 			File.mkdir(RegDir+j);
-			run("Image Sequence... ", "format=TIFF save=["+input+"/3_Registered_Sections/"+j+"/0000.tif]");
+			run("Image Sequence... ", "format=TIFF save=["+input+"/2_Registered_Sections/"+j+"/0000.tif]");
 			close();
 			
 			collectGarbage(Dslices, 4);
@@ -1670,8 +1664,8 @@ function RegisterSections() {
 	}
 
 	// Cleanup!
-	DeleteFile(input+"/BrainROIsm.zip");
-	DeleteFile(input+"/BrainROI.zip");
+	DeleteFile(input+"/CordROIsm.zip");
+	DeleteFile(input+"/CordROI.zip");
 	DeleteFile(tmpfile);
 	
 }
@@ -1679,7 +1673,7 @@ function RegisterSections() {
 function CreateOriginPoints() {
 	print("Creating origin points...");
 	//open exp brain, create start point and final point then save as csv
-	open(input + "/3_Registered_Sections/DAPI_25.tif");
+	open(input + "/2_Registered_Sections/DAPI_25.tif");
 	close("Results");
 	
 	// measurement settings
@@ -1704,11 +1698,11 @@ function CreateOriginPoints() {
 	run("Measure");
 	
 	selectWindow("Results");	
-	saveAs("Results", input + "5_Analysis_Output/Transform_Parameters/OriginPoints/OriginPoints.csv");
+	saveAs("Results", input + "4_Analysis_Output/Transform_Parameters/OriginPoints/OriginPoints.csv");
 	close("Results");
 	close("DAPI_25.tif");
 	
-	filestring=File.openAsString(input + "5_Analysis_Output/Transform_Parameters/OriginPoints/OriginPoints.csv"); 
+	filestring=File.openAsString(input + "4_Analysis_Output/Transform_Parameters/OriginPoints/OriginPoints.csv"); 
 	rows=split(filestring, "\n"); 
 	for(i=0; i<rows.length; i++){ 
 		//Clean up commas
@@ -1730,7 +1724,7 @@ function CreateOriginPoints() {
 		}
 	}
 	selectWindow("ResampledPoints");
-	run("Text...", "save=["+input +"5_Analysis_Output/Transform_Parameters/OriginPoints/OriginPoints.txt]");
+	run("Text...", "save=["+input +"4_Analysis_Output/Transform_Parameters/OriginPoints/OriginPoints.txt]");
 	close("OriginPoints.txt");
 	print("  Origin points created.");
 }
@@ -1819,16 +1813,16 @@ function CreateProbabilityMap(CellChan) {
 	dir = RegDir+CellChan+"/";
 	classifier = "Ilastik_Project_Channel_"+CellChan+".ilp";	
 	
-	File.mkdir(input + "4_Processed_Sections/Enhanced/"+CellChan);	
-	EnOut = input + "4_Processed_Sections/Enhanced/"+CellChan+"/";
-	File.mkdir(input + "4_Processed_Sections/Probability_Masks/"+CellChan);
-	ProbOut = input + "4_Processed_Sections/Probability_Masks/"+CellChan+"/";
+	File.mkdir(input + "3_Processed_Sections/Enhanced/"+CellChan);	
+	EnOut = input + "3_Processed_Sections/Enhanced/"+CellChan+"/";
+	File.mkdir(input + "3_Processed_Sections/Probability_Masks/"+CellChan);
+	ProbOut = input + "3_Processed_Sections/Probability_Masks/"+CellChan+"/";
 	if (ilastikmaskON == false) {
 		MaskOut = 0;
 		MaskThresh = 0;
 	} else {
-		File.mkdir(input + "4_Processed_Sections/Ilastik_Binary_Masks/"+CellChan);
-		IlastikMasks = input + "4_Processed_Sections/Ilastik_Binary_Masks/"+CellChan+"/";
+		File.mkdir(input + "3_Processed_Sections/Ilastik_Binary_Masks/"+CellChan);
+		IlastikMasks = input + "3_Processed_Sections/Ilastik_Binary_Masks/"+CellChan+"/";
 		MaskThresh = ilastikmaskthresh;
 	}
 	
@@ -1977,16 +1971,16 @@ function CreateProbabilityMapBatch(CellChan) {
 	print("Creating Ilastik probability images for channel "+CellChan+"...");
 	dir = RegDir+CellChan+"/";
 	classifier = "Ilastik_Project_Channel_"+CellChan+".ilp";	
-	File.mkdir(input + "4_Processed_Sections/Enhanced/"+CellChan);	
-	EnOut = input + "4_Processed_Sections/Enhanced/"+CellChan+"/";
-	File.mkdir(input + "4_Processed_Sections/Probability_Masks/"+CellChan);
-	ProbOut = input + "4_Processed_Sections/Probability_Masks/"+CellChan+"/";
+	File.mkdir(input + "3_Processed_Sections/Enhanced/"+CellChan);	
+	EnOut = input + "3_Processed_Sections/Enhanced/"+CellChan+"/";
+	File.mkdir(input + "3_Processed_Sections/Probability_Masks/"+CellChan);
+	ProbOut = input + "3_Processed_Sections/Probability_Masks/"+CellChan+"/";
 	if (ilastikmaskON == false) {
 		MaskOut = 0;
 		MaskThresh = 0;
 	} else {
-		File.mkdir(input + "4_Processed_Sections/Ilastik_Binary_Masks/"+CellChan);
-		IlastikMasks = input + "4_Processed_Sections/Ilastik_Binary_Masks/"+CellChan+"/";
+		File.mkdir(input + "3_Processed_Sections/Ilastik_Binary_Masks/"+CellChan);
+		IlastikMasks = input + "3_Processed_Sections/Ilastik_Binary_Masks/"+CellChan+"/";
 		MaskThresh = ilastikmaskthresh;
 	}
 	
@@ -2120,13 +2114,13 @@ function BGSubChannel(CellChan) {
 	//process sections
 
 	print("Processing channel "+CellChan+"...");
-	if (File.exists(input + "4_Processed_Sections/Enhanced/"+CellChan)) {
+	if (File.exists(input + "3_Processed_Sections/Enhanced/"+CellChan)) {
 			print("  Enhanced images already created.");
 	} else {
 	
 	dir = RegDir+CellChan+"/";	
-	File.mkdir(input + "4_Processed_Sections/Enhanced/"+CellChan);
-	EnOut = input + "4_Processed_Sections/Enhanced/"+CellChan+"/";
+	File.mkdir(input + "3_Processed_Sections/Enhanced/"+CellChan);
+	EnOut = input + "3_Processed_Sections/Enhanced/"+CellChan+"/";
 	
 	Sections = getFileList(dir);
 	Sections = Array.sort(Sections);	
@@ -2162,8 +2156,8 @@ function EnhanceAndFindMaxima(CellChan, MaximaInt) {
 		// e.g 	EnhanceAndFindMaxima(CellDir3, MaximaInt3, Ch3EnhanceOut, RegDir, CellChan3, Ch3ValOut)
 		//EnhanceAndFindMaxima(CellDir2, MaximaInt2, Ch2EnhanceOut, RegDir, CellCh2, Ch2ValOut);
 
-	if (File.exists(input + "5_Analysis_Output/Cell_Analysis/C"+CellChan+"_Detected_Cells_Summary.csv")) {
-		print("  Cell detection already performed. If you wish to rerun, delete directory: "+input + "5_Analysis_Output/Cell_Analysis/");
+	if (File.exists(input + "4_Analysis_Output/Cell_Analysis/C"+CellChan+"_Detected_Cells_Summary.csv")) {
+		print("  Cell detection already performed. If you wish to rerun, delete directory: "+input + "4_Analysis_Output/Cell_Analysis/");
 	} else {
 
 		DeleteFile(CellCountOut + "Cell_Points_Ch"+CellChan+".csv");
@@ -2172,10 +2166,10 @@ function EnhanceAndFindMaxima(CellChan, MaximaInt) {
 		//process sections
 		print("Preparing images for cell detection on channel: "+CellChan+"...");
 		dir = RegDir+CellChan+"/";
-		File.mkdir(input + "4_Processed_Sections/Enhanced/"+CellChan);
-		EnOut = input + "4_Processed_Sections/Enhanced/"+CellChan+"/";
-		File.mkdir(input + "4_Processed_Sections/Object_Detection_Validation/"+CellChan);
-		ValOut = input + "4_Processed_Sections/Object_Detection_Validation/"+CellChan+"/";
+		File.mkdir(input + "3_Processed_Sections/Enhanced/"+CellChan);
+		EnOut = input + "3_Processed_Sections/Enhanced/"+CellChan+"/";
+		File.mkdir(input + "3_Processed_Sections/Object_Detection_Validation/"+CellChan);
+		ValOut = input + "3_Processed_Sections/Object_Detection_Validation/"+CellChan+"/";
 		
 		Sections = getFileList(dir);
 		Sections = Array.sort(Sections);	
@@ -2267,7 +2261,7 @@ function EnhanceAndFindMaxima(CellChan, MaximaInt) {
 		
 		
 		print("  Measuring intensities and creating validation images...");
-		ChNum = CountFolders(input+ "/3_Registered_Sections/");
+		ChNum = CountFolders(input+ "/2_Registered_Sections/");
 				
 		for(chl=1; chl<ChNum+1; chl++) {
 			
@@ -2369,17 +2363,17 @@ function detectcellsfromprob(CellChan, MinInt, cellsize) {
 
 	print("Detecting cells for channel "+CellChan+" using Ilastik probability images...");
 
-	if (File.exists(input + "5_Analysis_Output/Cell_Analysis/C"+CellChan+"_Detected_Cells_Summary.csv")) {
-		print("     Cell detection already performed. If you wish to rerun, delete directory: "+input + "5_Analysis_Output/Cell_Analysis/");
+	if (File.exists(input + "4_Analysis_Output/Cell_Analysis/C"+CellChan+"_Detected_Cells_Summary.csv")) {
+		print("     Cell detection already performed. If you wish to rerun, delete directory: "+input + "4_Analysis_Output/Cell_Analysis/");
 	} else {
 
 		DeleteFile(CellCountOut + "Cell_Points_Ch"+CellChan+".csv");
 		DeleteFile(CellIntensityOut + "Cell_Points_with_intensities_Ch"+CellChan+".csv");
 		
-		ProbDir = input + "4_Processed_Sections/Probability_Masks/"+CellChan+"/";
+		ProbDir = input + "3_Processed_Sections/Probability_Masks/"+CellChan+"/";
 
-		File.mkdir(input + "4_Processed_Sections/Object_Detection_Validation/"+CellChan);
-		ValOut = input + "4_Processed_Sections/Object_Detection_Validation/"+CellChan+"/";
+		File.mkdir(input + "3_Processed_Sections/Object_Detection_Validation/"+CellChan);
+		ValOut = input + "3_Processed_Sections/Object_Detection_Validation/"+CellChan+"/";
 			
 		masks = getFileList(ProbDir);
 		masks = Array.sort( masks );
@@ -2459,7 +2453,7 @@ function detectcellsfromprob(CellChan, MinInt, cellsize) {
 			MeasureAlign = AlignCh;
 		}
 
-		ChNum = CountFolders(input+ "/3_Registered_Sections/");
+		ChNum = CountFolders(input+ "/2_Registered_Sections/");
 
 		for(chl=1; chl<=ChNum; chl++) {			
 			if (chl != MeasureAlign) {
@@ -2684,7 +2678,7 @@ function ResamplePointsSC() {
 	}
 	SCTotalSlices = SCEndSlice-SCStartSlice;
 
-	SCRawSlices = getFileList(input+ "/3_Registered_Sections/1/");	
+	SCRawSlices = getFileList(input+ "/2_Registered_Sections/1/");	
 	SCRawSlices = SCRawSlices.length;
 	SCZCorrection = SCTotalSlices/SCRawSlices;
 	
@@ -2714,11 +2708,11 @@ function SwapColumnsXYZ_ZYX(TableTitle, f) {
 }
 
 function CreateCellPoints(CellChan) {	
-	if (File.exists(input + "5_Analysis_Output/Cell_Analysis/C"+CellChan+"_Cell_Points.tif")) {
-		print("     Cell plots in template already performed. If you wish to rerun, delete : "+input + "5_Analysis_Output/Cell_Analysis/C"+CellChan+"_Cell_Points.tif");
+	if (File.exists(input + "4_Analysis_Output/Cell_Analysis/C"+CellChan+"_Cell_Points.tif")) {
+		print("     Cell plots in template already performed. If you wish to rerun, delete : "+input + "4_Analysis_Output/Cell_Analysis/C"+CellChan+"_Cell_Points.tif");
 	} else {
 
-	celloutput = input + "5_Analysis_Output/Cell_Analysis/";
+	celloutput = input + "4_Analysis_Output/Cell_Analysis/";
 	
 	run("Cell Point Creation SJ", "select=["+input+"] select_0=["+celloutput+"] cell="+CellChan+" atlassizex="+AtlasSizeX+" atlassizey="+AtlasSizeY+" atlassizez="+AtlasSizeZ);
 
@@ -2730,7 +2724,6 @@ function CreateCellPoints(CellChan) {
 function rawcoronalto3DsagittalDAPI (inputdir, outputdir, filename, outputres, BGround, ZCut) {
 	// Creates a 3D sagittal brain from 2D coronal sections, requires BGround is min intensity, ZCut is section cut thickness
 	// Use: 
-	// rawcoronalto3Dsagittal(input+"/3_Registered_Sections/"+AlignCh, input+"/3_Registered_Sections", "Sagittal25DAPI", 25, BGround, ZCut);
 	rawSections = getFileList(inputdir);
 	rawSections = Array.sort( rawSections );
 	Section1 = rawSections[0];
@@ -2871,8 +2864,6 @@ function rawcoronalto3Dsagittal (inputdir, outputdir, filename, outputres, BGrou
 function enhancedcoronalto3Dsagittalbinary (inputdir, outputdir, filename, outputres, ProBGround, ZCut) {
 	// Creates a 3D sagittal brain from 2D coronal sections, requires BGround is min intensity, ZCut is section cut thickness
 	// Use: 
-	// rawcoronalto3Dsagittal(input+"/3_Registered_Sections/"+AlignCh, input+"/3_Registered_Sections", "Sagittal25DAPI", 25, BGround, ZCut, ProBGSub);
-	//(input+"/3_Registered_Slices/"+CellCh, input+"/3_Registered_Sections", "Sagittal25_C1_Binary", 25, ProChBG, ZCut)
 	if (File.exists(inputdir) == 1) { 
 		rawSections = getFileList(inputdir);
 		rawSections = Array.sort( rawSections );
@@ -2927,8 +2918,6 @@ function enhancedcoronalto3Dsagittalbinary (inputdir, outputdir, filename, outpu
 function coronalto3Dsagittal (inputdir, outputdir, filename, outputres, ZCut) {
 	// Creates a 3D sagittal brain from 2D coronal Sections, requires BGround is min intensity, ZCut is section cut thickness
 	// Use: 
-	// coronalto3Dsagittal(input+"/3_Registered_Sections/"+AlignCh, input+"/3_Registered_Sections", "Sagittal25DAPI", 25, BGround, ZCut, ProBGSub);
-	//(input+"/3_Registered_Sections/"+CellCh, input+"/3_Registered_Sections", "Sagittal25_C1_Binary", 25, ProChBG, ZCut)
 	if (File.exists(outputdir+"/"+filename+".tif") == 0) {
 			
 		rawSections = getFileList(inputdir);
@@ -3442,8 +3431,8 @@ function AnnotatePointsSpinalCord (PointsIn, AtlasAnnotationImg, AtlasAnnotation
 function createColorProjections(Channel) {
 
 // example of use:
-// createColorProjections(input + "5_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv", ProCh, input + "5_Analysis_Output/Temp/Transformed_C"+ProCh+"_Binary_Out/result.mhd", input+"/5_Analysis_Output");
-// createColorProjections(input + "5_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv", ProCh, input + "5_Analysis_Output/Temp/Transformed_C"+ProCh+"_Binary_Out/result.mhd", input+"/5_Analysis_Output");
+// createColorProjections(input + "4_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv", ProCh, input + "4_Analysis_Output/Temp/Transformed_C"+ProCh+"_Binary_Out/result.mhd", input+"/4_Analysis_Output");
+// createColorProjections(input + "4_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv", ProCh, input + "4_Analysis_Output/Temp/Transformed_C"+ProCh+"_Binary_Out/result.mhd", input+"/4_Analysis_Output");
 	print("Creating projection density images for channel "+Channel);
 	
 	if (File.exists(TransformedProjectionDataOut + "C"+Channel+"_Atlas_Colored_Projections.tif")) {
@@ -3451,7 +3440,7 @@ function createColorProjections(Channel) {
 	} else {
 
 	
-	open(input + "5_Analysis_Output/Transform_Parameters/OriginPoints/OriginPoints.csv");
+	open(input + "4_Analysis_Output/Transform_Parameters/OriginPoints/OriginPoints.csv");
 	Table.rename(Table.title, "Results");
 	IndexOrigin=parseInt(getResult("Z", 0));
 	IndexEnd=parseInt(getResult("Z", 1));
@@ -3499,7 +3488,7 @@ function createColorProjections(Channel) {
 function OverlayColorProjectionsOnTemplate(Projections, Channel, OutputDir) {
 
 // example of use:
-// OverlayColorProjectionsOnTemplate(input + "5_Analysis_Output/Colored_Projections_C"+ProCh+".tif", ProCh, input+"/5_Analysis_Output");
+// OverlayColorProjectionsOnTemplate(input + "4_Analysis_Output/Colored_Projections_C"+ProCh+".tif", ProCh, input+"/4_Analysis_Output");
 
 	print("Creating projections overlayed with template and 3D images for channel "+Channel);
 
@@ -3565,11 +3554,11 @@ function OverlayColorProjectionsOnTemplate(Projections, Channel, OutputDir) {
  	
 function MeasureIntensitiesLRHemisphereFullRes(Channel) {
 	// Previously: (OriginPoints, Channel, TransformedInputImage, OutputDir)
-	// (input + "5_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv", j, TransformedRawDataOut+"/"+"C"+j+"_raw_data_in_atlas_space.tif", input+"/5_Analysis_Output/Region_Mean_Intensity_Measurements")
+	// (input + "4_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv", j, TransformedRawDataOut+"/"+"C"+j+"_raw_data_in_atlas_space.tif", input+"/4_Analysis_Output/Region_Mean_Intensity_Measurements")
 	
 	// creates a volume and density table when given binary projections
 		
-	IntOutputDir = input+"/5_Analysis_Output/Region_Mean_Intensity_Measurements_XY_"+ProAnRes+"_Z_"+ZCut+"micron/";
+	IntOutputDir = input+"/4_Analysis_Output/Region_Mean_Intensity_Measurements_XY_"+ProAnRes+"_Z_"+ZCut+"micron/";
 
 	if (File.exists(IntOutputDir+"C"+Channel+"_Measured_Region_Intensity.csv")) {
 			print("     Intensity heatmap already created. If you wish to rerun, delete : \n     "+IntOutputDir+"C"+Channel+"_Measured_Region_Intensity.csv");
@@ -3605,12 +3594,12 @@ function MeasureIntensitiesLRHemisphereFullRes(Channel) {
 	
 		print("   Importing and scaling annotation data for analysis...");
 		
-		open(input + "5_Analysis_Output/Transformed_Annotations.tif");
+		open(input + "4_Analysis_Output/Transformed_Annotations.tif");
 		rename("Annotations");
 		run("Size...", "width="+IMwidth+" height="+IMheight+" depth="+IMslices+" interpolation=None");
 		
 		// Import Hemisphere Mask
-		open(input + "5_Analysis_Output/Transformed_Hemisphere_Annotations.tif");
+		open(input + "4_Analysis_Output/Transformed_Hemisphere_Annotations.tif");
 		rename("Hemi_Annotations");
 		run("Size...", "width="+IMwidth+" height="+IMheight+" depth="+IMslices+" interpolation=None");
 		run("Divide...", "value=255 stack");
@@ -3634,9 +3623,9 @@ function MeasureIntensitiesLRHemisphereFullRes(Channel) {
 	
 	// Then measure volume of regions in cropped annotated brain - check if it's already been measured
 
-		if (File.exists(input+"/5_Analysis_Output/Annotated_Volumes_XY_"+ProAnRes+"_Z_"+ZCut+"micron.csv")) {
+		if (File.exists(input+"/4_Analysis_Output/Annotated_Volumes_XY_"+ProAnRes+"_Z_"+ZCut+"micron.csv")) {
 			print("   Annotated volumes already measured.");
-			open(input+"/5_Analysis_Output/Annotated_Volumes_XY_"+ProAnRes+"_Z_"+ZCut+"micron.csv");
+			open(input+"/4_Analysis_Output/Annotated_Volumes_XY_"+ProAnRes+"_Z_"+ZCut+"micron.csv");
 			Table.rename(Table.title, "Results");
 			VolumesLeft = newArray(NumIDs);
 			VolumesRight = newArray(NumIDs);
@@ -3706,7 +3695,7 @@ function MeasureIntensitiesLRHemisphereFullRes(Channel) {
 			selectWindow(title1);
 			//Find way of renaming table to results so that it can be edited as results. For NOW just save and reopen
 			//IJ.renameResults(title1,"Results");
-			run("Text...", "save=["+ input+"/5_Analysis_Output/Annotated_Volumes_XY_"+ProAnRes+"_Z_"+ZCut+"micron.csv]");
+			run("Text...", "save=["+ input+"/4_Analysis_Output/Annotated_Volumes_XY_"+ProAnRes+"_Z_"+ZCut+"micron.csv]");
 			close(title1);
 			print("   Measurements complete.");
 
@@ -3823,12 +3812,12 @@ function MeasureIntensitiesLRHemisphereFullRes(Channel) {
 
 function MeasureIntensitiesLRHemisphereFullResSpinalCord(Channel) {
 	// Previously: (OriginPoints, Channel, TransformedInputImage, OutputDir)
-	// (input + "5_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv", j, TransformedRawDataOut+"/"+"C"+j+"_raw_data_in_atlas_space.tif", input+"/5_Analysis_Output/Region_Mean_Intensity_Measurements")
+	// (input + "4_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv", j, TransformedRawDataOut+"/"+"C"+j+"_raw_data_in_atlas_space.tif", input+"/4_Analysis_Output/Region_Mean_Intensity_Measurements")
 	
 	// creates a volume and density table when given binary projections
 	run("Input/Output...", "jpeg=100 gif=-1 file=.csv use use_file save_column");
 	
-	IntOutputDir = input+"/5_Analysis_Output/Region_Mean_Intensity_Measurements_XY_"+ProAnRes+"_Z_"+ZCut+"micron/";
+	IntOutputDir = input+"/4_Analysis_Output/Region_Mean_Intensity_Measurements_XY_"+ProAnRes+"_Z_"+ZCut+"micron/";
 
 	if (File.exists(IntOutputDir+"C"+Channel+"_Mean_Region_and_Segment_Intensity.csv")) {
 			print("     Region mean intensities already measured. If you wish to rerun, delete : \n     "+IntOutputDir+"C"+Channel+"_Mean_Region_and_Segment_Intensity.csv");
@@ -3859,7 +3848,7 @@ function MeasureIntensitiesLRHemisphereFullResSpinalCord(Channel) {
 		close("\\Others");
 		
 		// Read in Segment information
-		open(input+"/5_Analysis_Output/Transformed_Segment_Annotations.csv");
+		open(input+"/4_Analysis_Output/Transformed_Segment_Annotations.csv");
 		Table.rename(Table.title, "Results");
 		TransSegmentRefArray = newArray(nResults);
 		for(i=0; i<nResults; i++) {
@@ -3869,14 +3858,14 @@ function MeasureIntensitiesLRHemisphereFullResSpinalCord(Channel) {
 
 		// Process is using slicecs rather than segment images for speed - but consider using images as in other methods. import in case required for annotation volume measurements
 		// Import Segments	
-		open(input + "5_Analysis_Output/Transformed_Segments.tif");
+		open(input + "4_Analysis_Output/Transformed_Segments.tif");
 		rename("Segments");
 	
 		// Import Annotations
 	
 		print("   Importing and scaling annotation data for analysis...");
 		
-		open(input + "5_Analysis_Output/Transformed_Annotations.tif");
+		open(input + "4_Analysis_Output/Transformed_Annotations.tif");
 		rename("Annotations");
 	
 		// Rescale if necessary 
@@ -3884,7 +3873,7 @@ function MeasureIntensitiesLRHemisphereFullResSpinalCord(Channel) {
 		
 		// Import Hemisphere Mask
 	
-		open(input + "5_Analysis_Output/Transformed_Hemisphere_Annotations.tif");
+		open(input + "4_Analysis_Output/Transformed_Hemisphere_Annotations.tif");
 		rename("Hemi_Annotations");
 	
 		// Rescale if necessary 
@@ -3917,7 +3906,7 @@ function MeasureIntensitiesLRHemisphereFullResSpinalCord(Channel) {
 		LateralRes = 10;
 	
 		// Then measure volume of regions in cropped annotated brain - check if it's already been measured
-		SCTableOut = input+"/5_Analysis_Output/Annotated_Volumes_XY_"+LateralRes+"_Z_"+ZCut+"micron.csv";
+		SCTableOut = input+"/4_Analysis_Output/Annotated_Volumes_XY_"+LateralRes+"_Z_"+ZCut+"micron.csv";
 		
 		if (File.exists(SCTableOut) == false) {
 			SCMeasureRegionVolumes(SCTableOut);
@@ -3987,9 +3976,9 @@ function MeasureIntensitiesLRHemisphereFullResSpinalCord(Channel) {
 
 		// Divide intensity total by volume to get mean intensity.
 		// Table 1 is Numerator, Table 2 Denominator, Table 3 New Results table to be saved
-		SpinalCordCreateDivisionTable (IntOutputDir+"C"+Channel+"_Total_Region_and_Segment_Intensity.csv", input+"/5_Analysis_Output/Annotated_Volumes_XY_"+ProAnRes+"_Z_"+ZCut+"micron.csv", IntOutputDir+"C"+Channel+"_Mean_Region_and_Segment_Intensity.csv","C"+Channel+"_Mean_Region_and_Segment_Intensity.csv");		
+		SpinalCordCreateDivisionTable (IntOutputDir+"C"+Channel+"_Total_Region_and_Segment_Intensity.csv", input+"/4_Analysis_Output/Annotated_Volumes_XY_"+ProAnRes+"_Z_"+ZCut+"micron.csv", IntOutputDir+"C"+Channel+"_Mean_Region_and_Segment_Intensity.csv","C"+Channel+"_Mean_Region_and_Segment_Intensity.csv");		
 		//DeleteFile(IntOutputDir+"C"+Channel+"_Total_Region_and_Segment_Intensity.csv");
-		//DeleteFile(input+"/5_Analysis_Output/Region_Mean_Intensity_Measurements_XY_"+ProAnRes+"_Z_"+ZCut+"micron/Annotated_Volumes_XY_"+ProAnRes+"_Z_"+ZCut+"micron.csv");
+		//DeleteFile(input+"/4_Analysis_Output/Region_Mean_Intensity_Measurements_XY_"+ProAnRes+"_Z_"+ZCut+"micron/Annotated_Volumes_XY_"+ProAnRes+"_Z_"+ZCut+"micron.csv");
 
 		print("   Intensity measurements complete.");
 	}
@@ -3999,10 +3988,10 @@ function MeasureIntensitiesLRHemisphereFullResSpinalCord(Channel) {
 function createColorCells(Channel, BinaryCells, OutputDir) {
 
 // example of use:
-// createColorCells(CellCh, input + "5_Analysis_Output/Cell_Points_C1.tif", input+"/5_Analysis_Output");
+// createColorCells(CellCh, input + "4_Analysis_Output/Cell_Points_C1.tif", input+"/4_Analysis_Output");
 
-	if (File.exists(input + "5_Analysis_Output/Cell_Analysis/C"+Channel+"_Atlas_Colored_Cells.tif")) {
-		print("     Color cell plotting already performed. If you wish to rerun, delete : "+input + "5_Analysis_Output/Cell_Analysis/C"+Channel+"_Atlas_Colored_Cells.tif");
+	if (File.exists(input + "4_Analysis_Output/Cell_Analysis/C"+Channel+"_Atlas_Colored_Cells.tif")) {
+		print("     Color cell plotting already performed. If you wish to rerun, delete : "+input + "4_Analysis_Output/Cell_Analysis/C"+Channel+"_Atlas_Colored_Cells.tif");
 	} else {
 	
 	open(BinaryCells);
@@ -4051,9 +4040,9 @@ function createColorCells(Channel, BinaryCells, OutputDir) {
 function OverlayColorCellsOnTemplate(Cells, Channel, OutputDir) {
 
 // example of use:
-// OverlayColorCellsOnTemplate(input + "5_Analysis_Output/Colored_Cells_C"+CellCh+".tif", CellCh, input+"/5_Analysis_Output");
-	if (File.exists(input + "5_Analysis_Output/Cell_Analysis/C"+Channel+"_Atlas_Colored_Cells_Template_Overlay.tif")) {
-		print("     Cell plotting already performed. If you wish to rerun, delete : "+input + "5_Analysis_Output/Cell_Analysis/C"+Channel+"_Atlas_Colored_Cells_Template_Overlay.tif");
+// OverlayColorCellsOnTemplate(input + "4_Analysis_Output/Colored_Cells_C"+CellCh+".tif", CellCh, input+"/4_Analysis_Output");
+	if (File.exists(input + "4_Analysis_Output/Cell_Analysis/C"+Channel+"_Atlas_Colored_Cells_Template_Overlay.tif")) {
+		print("     Cell plotting already performed. If you wish to rerun, delete : "+input + "4_Analysis_Output/Cell_Analysis/C"+Channel+"_Atlas_Colored_Cells_Template_Overlay.tif");
 	} else {
 
 
@@ -4352,11 +4341,11 @@ function CreateSCIntensityImage(Chan) {
 	//get origin front and back
 	print("  Creating intensity map image for channel "+Chan+"...");
 
-	if (File.exists(input+"/5_Analysis_Output/Region_Mean_Intensity_Measurements_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Chan+"_Atlas_Region_Intensity_Map.tif")) {
-		print("     Projection density heatmap already created. If you wish to rerun, delete: \n     "+input+"/5_Analysis_Output/Region_Mean_Intensity_Measurements_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Chan+"_Atlas_Region_Intensity_Map.tif");
+	if (File.exists(input+"/4_Analysis_Output/Region_Mean_Intensity_Measurements_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Chan+"_Atlas_Region_Intensity_Map.tif")) {
+		print("     Projection density heatmap already created. If you wish to rerun, delete: \n     "+input+"/4_Analysis_Output/Region_Mean_Intensity_Measurements_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Chan+"_Atlas_Region_Intensity_Map.tif");
 	} else {
 	
-	OpenAsHiddenResults(input+"/5_Analysis_Output/Region_Mean_Intensity_Measurements_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Chan+"_Mean_Region_and_Segment_Intensity.csv");
+	OpenAsHiddenResults(input+"/4_Analysis_Output/Region_Mean_Intensity_Measurements_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Chan+"_Mean_Region_and_Segment_Intensity.csv");
 	NumIDs = (nResults);
 	RegionIDs = newArray(NumIDs);
 	for(NumIDcount=0; NumIDcount<NumIDs; NumIDcount++) {
@@ -4430,13 +4419,13 @@ function CreateSCIntensityImage(Chan) {
 	run("RGB Color");
 	imageCalculator("Add stack", "AnnotationMask","HeatmapRGB");
 	run("Make Montage...", "columns=6 rows=5 scale=1");
-		saveAs("Tiff", input+"/5_Analysis_Output/Region_Mean_Intensity_Measurements_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Chan+"_Atlas_Region_Intensity_Map_Montage_Grey_BG_RGB.tif");
+		saveAs("Tiff", input+"/4_Analysis_Output/Region_Mean_Intensity_Measurements_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Chan+"_Atlas_Region_Intensity_Map_Montage_Grey_BG_RGB.tif");
 	// Create stack with fire LUT
 	selectWindow("Heatmap");
 	run("Label...", "format=Label starting=0 interval=1 x=10 y=30 font=20 text=C1 range=1-34");
-	saveAs("Tiff", input+"/5_Analysis_Output/Region_Mean_Intensity_Measurements_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Chan+"_Atlas_Region_Intensity_Map.tif");
+	saveAs("Tiff", input+"/4_Analysis_Output/Region_Mean_Intensity_Measurements_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Chan+"_Atlas_Region_Intensity_Map.tif");
 	run("Make Montage...", "columns=6 rows=5 scale=1");
-	saveAs("Tiff", input+"/5_Analysis_Output/Region_Mean_Intensity_Measurements_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Chan+"_Atlas_Region_Intensity_Map_Montage.tif");
+	saveAs("Tiff", input+"/4_Analysis_Output/Region_Mean_Intensity_Measurements_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Chan+"_Atlas_Region_Intensity_Map_Montage.tif");
 	close("*");
 	collectGarbage(10, 4);
 	print("     Complete.");
@@ -4449,11 +4438,11 @@ function CreateSCCellDensityHeatmapImage (Chan) {
 	//get origin front and back
 	print("  Creating cell density heatmap image for channel "+Chan+"...");
 
-	if (File.exists(input+"/5_Analysis_Output/Cell_Analysis/C"+Chan+"_Atlas_Region_Cell_Density_Heatmap.tif")) {
-		print("     Cell density heatmap already created. If you wish to rerun, delete: \n     "+input+"/5_Analysis_Output/Cell_Analysis/C"+Chan+"_Atlas_Region_Cell_Density_Heatmap.tif");
+	if (File.exists(input+"/4_Analysis_Output/Cell_Analysis/C"+Chan+"_Atlas_Region_Cell_Density_Heatmap.tif")) {
+		print("     Cell density heatmap already created. If you wish to rerun, delete: \n     "+input+"/4_Analysis_Output/Cell_Analysis/C"+Chan+"_Atlas_Region_Cell_Density_Heatmap.tif");
 	} else {
 	
-	OpenAsHiddenResults(input+"/5_Analysis_Output/Cell_Analysis/C"+Chan+"_Region_and_Segment_Cell_Density_mm3.csv");
+	OpenAsHiddenResults(input+"/4_Analysis_Output/Cell_Analysis/C"+Chan+"_Region_and_Segment_Cell_Density_mm3.csv");
 	NumIDs = (nResults);
 	RegionIDs = newArray(NumIDs);
 	for(NumIDcount=0; NumIDcount<NumIDs; NumIDcount++) {
@@ -4529,13 +4518,13 @@ function CreateSCCellDensityHeatmapImage (Chan) {
 	run("RGB Color");
 	imageCalculator("Add stack", "AnnotationMask","HeatmapRGB");
 	run("Make Montage...", "columns=6 rows=5 scale=1");
-	saveAs("Tiff", input+"/5_Analysis_Output/Cell_Analysis/C"+Chan+"_Atlas_Region_Cell_Density_Heatmap_Montage_Grey_RGB.tif");
+	saveAs("Tiff", input+"/4_Analysis_Output/Cell_Analysis/C"+Chan+"_Atlas_Region_Cell_Density_Heatmap_Montage_Grey_RGB.tif");
 	// Create stack with fire LUT
 	selectWindow("Heatmap");
 	run("Label...", "format=Label starting=0 interval=1 x=10 y=30 font=20 text=C1 range=1-34");
-	saveAs("Tiff", input+"/5_Analysis_Output/Cell_Analysis/C"+Chan+"_Atlas_Region_Cell_Density_Heatmap.tif");
+	saveAs("Tiff", input+"/4_Analysis_Output/Cell_Analysis/C"+Chan+"_Atlas_Region_Cell_Density_Heatmap.tif");
 	run("Make Montage...", "columns=6 rows=5 scale=1");
-	saveAs("Tiff", input+"/5_Analysis_Output/Cell_Analysis/C"+Chan+"_Atlas_Region_Cell_Density_Heatmap_Montage.tif");
+	saveAs("Tiff", input+"/4_Analysis_Output/Cell_Analysis/C"+Chan+"_Atlas_Region_Cell_Density_Heatmap_Montage.tif");
 	close("*");
 	collectGarbage(10, 4);
 	print("     Complete.");
@@ -4617,15 +4606,15 @@ function num2array(str,delim){
 function measure_int_manual_cells(CellChan) {
 	print("Measuring itensities for channel: "+CellChan+"...");
 
-	if (File.exists(input + "5_Analysis_Output/Cell_Analysis/C"+CellChan+"_Detected_Cells_Summary.csv")) {
-		print("     Cell analysis for channel "+CellChan+" already performed. If you wish to rerun, delete directory: "+input + "5_Analysis_Output/Cell_Analysis/");
+	if (File.exists(input + "4_Analysis_Output/Cell_Analysis/C"+CellChan+"_Detected_Cells_Summary.csv")) {
+		print("     Cell analysis for channel "+CellChan+" already performed. If you wish to rerun, delete directory: "+input + "4_Analysis_Output/Cell_Analysis/");
 	} else {
 
 		DeleteFile(CellCountOut + "Cell_Points_Ch"+CellChan+".csv");
 		DeleteFile(CellIntensityOut + "Cell_Points_with_intensities_Ch"+CellChan+".csv");
 	
 	
-		CellLocations = input + "4_Processed_Sections/Detected_Cells/Cell_Points_Ch"+CellChan+".csv";
+		CellLocations = input + "3_Processed_Sections/Detected_Cells/Cell_Points_Ch"+CellChan+".csv";
 		//make sure headings aren't saved
 		run("Input/Output...", "jpeg=100 gif=-1 file=.csv use use_file");
 		// measurement settings
@@ -4864,18 +4853,18 @@ function LocateID(RegionArray, VarName) {
 
 function CreateDAPIMask (input) {
 	if (File.exists(RegDir + "DAPI_25_Mask.tif") == 0) {
-		open(input+"3_Registered_Sections/DAPI_25.tif");
+		open(input+"2_Registered_Sections/DAPI_25.tif");
 		setAutoThreshold("Li dark");
 		run("Convert to Mask", "method=Li background=Dark calculate black");
 		run("Dilate", "stack");
 		run("Dilate", "stack");
-		saveAs("Tiff", input+"3_Registered_Sections/DAPI_25_Mask.tif");
+		saveAs("Tiff", input+"2_Registered_Sections/DAPI_25_Mask.tif");
 		close();
 	}
 }
 
 function UpdateTransParamLocation0 (ParamFileLocation) {
-	//Param file location should be e.g.: input + "5_Analysis_Output/Transform_Parameters/Cell_TransformParameters.1.txt"
+	//Param file location should be e.g.: input + "4_Analysis_Output/Transform_Parameters/Cell_TransformParameters.1.txt"
 
 	filestring=File.openAsString(ParamFileLocation); 
 	rows=split(filestring, "\n"); 
@@ -4887,7 +4876,7 @@ function UpdateTransParamLocation0 (ParamFileLocation) {
 	}		
 					
 	//Create new array lines
-	newParam ="(InitialTransformParametersFileName "+q + input + "5_Analysis_Output/Transform_Parameters/Cell_TransformParameters.0.txt"+q+")";
+	newParam ="(InitialTransformParametersFileName "+q + input + "4_Analysis_Output/Transform_Parameters/Cell_TransformParameters.0.txt"+q+")";
 					
 	//Update Array lines
 	rows[ParamRow] = newParam;
@@ -4912,11 +4901,11 @@ function UpdateTransParamLocation0 (ParamFileLocation) {
 function CreateCellHeatmap(CellChan) {
 	print("  Creating cell heatmaps for channel "+CellChan+" ...");
 	
-	if (File.exists(input + "5_Analysis_Output/Cell_Analysis/C"+CellChan+"_Cells_Heatmap.tif")) {
-		print("     Cell heatmpas already created. If you wish to rerun, delete : "+input + "5_Analysis_Output/Cell_Analysis/C"+CellChan+"_Cells_Heatmap.tif");
+	if (File.exists(input + "4_Analysis_Output/Cell_Analysis/C"+CellChan+"_Cells_Heatmap.tif")) {
+		print("     Cell heatmpas already created. If you wish to rerun, delete : "+input + "4_Analysis_Output/Cell_Analysis/C"+CellChan+"_Cells_Heatmap.tif");
 	} else {
 
-	celloutput = input + "5_Analysis_Output/Cell_Analysis/";
+	celloutput = input + "4_Analysis_Output/Cell_Analysis/";
 	
 	run("Cell Heatmap Creation 10 10 25", "select=["+input+"] select_0=["+celloutput+"] cell="+CellChan+" atlassizex="+AtlasSizeX+" atlassizey="+AtlasSizeY+" atlassizez="+AtlasSizeZ);
 
@@ -4926,16 +4915,16 @@ function CreateCellHeatmap(CellChan) {
 
 function TransformRawDataToAtlas() {
 	//Count number of channel folders in Registered Directory
-	ChNum = CountFolders(input+ "/3_Registered_Sections/");
+	ChNum = CountFolders(input+ "/2_Registered_Sections/");
 	
 	//Count number of registered slices
-	RegSectionsCount = getFileList(input+ "/3_Registered_Sections/1/");	
+	RegSectionsCount = getFileList(input+ "/2_Registered_Sections/1/");	
 	RegSectionsCount = RegSectionsCount.length;		
 		
 	// 1) Elastix Inverse Transform Align Image to Template
 	ProTstarttime = getTime();
 	print("Preparing to transform raw data into atlas space...");
-	if (File.exists(input + "5_Analysis_Output/Transform_Parameters/RawDataTransformParameters.txt")) {
+	if (File.exists(input + "4_Analysis_Output/Transform_Parameters/RawDataTransformParameters.txt")) {
 		print("     Alignment already performed, using existing transform parameters.");
 	} else {
 		print("     Performing alignment and creating transform parameters...");
@@ -4951,13 +4940,13 @@ function TransformRawDataToAtlas() {
 				
 		// 2) Modify Inv Transform Parameters - NoInitialTransform and Size/Index/Spacing/Origin/Direction set to the atlas space
 
-		open(input + "5_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv");
+		open(input + "4_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv");
 		Table.rename(Table.title, "Results");
 		IndexOrigin=parseInt(getResult("X", 0));
 		IndexEnd=parseInt(getResult("X", 1));
 		close("Results");
 
-		filestring=File.openAsString(input + "5_Analysis_Output/Temp/InvOut/TransformParameters.0.txt"); 
+		filestring=File.openAsString(input + "4_Analysis_Output/Temp/InvOut/TransformParameters.0.txt"); 
 
 		rows=split(filestring, "\n"); 
 		//Search for required rows
@@ -5026,10 +5015,10 @@ function TransformRawDataToAtlas() {
 		}
 	
 		selectWindow("NewTransParameters");
-		run("Text...", "save=["+ input + "5_Analysis_Output/Transform_Parameters/RawDataTransformParameters.txt]");
+		run("Text...", "save=["+ input + "4_Analysis_Output/Transform_Parameters/RawDataTransformParameters.txt]");
 		
 		close("RawDataTransformParameters.txt");
-		DeleteDir(input + "5_Analysis_Output/Temp/InvOut/");
+		DeleteDir(input + "4_Analysis_Output/Temp/InvOut/");
 
 		print("     Transform parameters created.");
 	}	
@@ -5047,20 +5036,16 @@ function TransformRawDataToAtlas() {
 		
 	SPstarttime = getTime();
 	for(j=1; j<ChNum+1; j++) {	
-		Sections = getFileList(input+"/3_Registered_Sections/"+j);
-		//print(" Creating "+ProAnRes+"um lateral with "+ProAnResSection+" section thickness volumes with raw data for channel "+j);		
-		//coronalto3Dsagittal(input + "3_Registered_Sections/" +j, input+"/3_Registered_Sections", "C"+j+"_Sagittal", ProAnRes, ZCut);
-		
+		Sections = getFileList(input+"/2_Registered_Sections/"+j);
+	
 		print(" Creating "+AtlasResXY+"um lateral with "+AtlasResZ+" section thickness volumes with raw data for channel "+j); 	
-		coronalto3Dsagittal(RegDir +j, input+"/3_Registered_Sections", "C"+j+"_25", AtlasResXY, ZCut);
+		coronalto3Dsagittal(RegDir +j, input+"/2_Registered_Sections", "C"+j+"_25", AtlasResXY, ZCut);
 
-		if (File.exists(input + "4_Processed_Sections/Enhanced/" +j)) {
-				EnSectionsCount = getFileList(input + "4_Processed_Sections/Enhanced/" +j);	
+		if (File.exists(input + "3_Processed_Sections/Enhanced/" +j)) {
+				EnSectionsCount = getFileList(input + "3_Processed_Sections/Enhanced/" +j);	
 				if (RegSectionsCount == EnSectionsCount.length){
-					//print(" Creating "+ProAnRes+"um lateral with "+ProAnResSection+" section thickness volumes with background subtracted data for channel "+j);
 					print(" Creating "+AtlasResXY+"um lateral with "+AtlasResZ+" section thickness volumes with background subtracted data for channel "+j);
-					//coronalto3Dsagittal(input + "4_Processed_Sections/Enhanced/" +j, input+"/3_Registered_Sections", "C"+j+"_SagittalBGSub", ProAnRes, ZCut);
-					coronalto3Dsagittal(input + "4_Processed_Sections/Enhanced/" +j, input+"/3_Registered_Sections", "C"+j+"_25_BGSub", AtlasResXY, ZCut);
+					coronalto3Dsagittal(input + "3_Processed_Sections/Enhanced/" +j, input+"/2_Registered_Sections", "C"+j+"_25_BGSub", AtlasResXY, ZCut);
 				}
 		}
 				
@@ -5076,13 +5061,13 @@ function TransformRawDataToAtlas() {
 	//Transform images to ABA space
 	TBstarttime = getTime();
 
-	File.mkdir(input + "5_Analysis_Output/Temp/Transformed_Raw_Out");
+	File.mkdir(input + "4_Analysis_Output/Temp/Transformed_Raw_Out");
 	File.mkdir(TransformedRawDataOut);
 	
 	
-	InvTransPModRawData = CreateCmdLine(input + "5_Analysis_Output/Transform_Parameters/RawDataTransformParameters.txt");
+	InvTransPModRawData = CreateCmdLine(input + "4_Analysis_Output/Transform_Parameters/RawDataTransformParameters.txt");
 	
-	open(input + "5_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv");
+	open(input + "4_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv");
 	Table.rename(Table.title, "Results");
 	IndexOrigin=parseInt(getResult("Z", 0));
 	IndexEnd=parseInt(getResult("Z", 1));
@@ -5096,9 +5081,9 @@ function TransformRawDataToAtlas() {
 		} else {
 	
 					
-			TransformedRawData = input + "5_Analysis_Output/Temp/Transformed_Raw_Out/result.mhd";
+			TransformedRawData = input + "4_Analysis_Output/Temp/Transformed_Raw_Out/result.mhd";
 			RawImageForTrans = CreateCmdLine(RegDir + "C"+j+"_25.tif");
-			TempTransImageOut = CreateCmdLine(input + "5_Analysis_Output/Temp/Transformed_Raw_Out");
+			TempTransImageOut = CreateCmdLine(input + "4_Analysis_Output/Temp/Transformed_Raw_Out");
 	
 			TransformCmd = Transformix +" -in "+RawImageForTrans+" -tp "+InvTransPModRawData+" -out "+TempTransImageOut;
 			
@@ -5153,7 +5138,7 @@ function TransformRawDataToAtlas() {
 	}	
 
 	DeleteFile(input+"TransformixRun.bat");
-	DeleteDir(input + "5_Analysis_Output/Temp/Transformed_Raw_Out/");
+	DeleteDir(input + "4_Analysis_Output/Temp/Transformed_Raw_Out/");
 	collectGarbage(10, 4);	
 
 	TBendtime = getTime();
@@ -5175,14 +5160,14 @@ function TransformBinaryDataToAtlas(Channel) {
 			print("   Importing projection data for density analysis...");
 	
 			if (ProjDetMethod == "Binary Threshold") {
-				inputdir = input + "4_Processed_Sections/Enhanced/"+Channel;
+				inputdir = input + "3_Processed_Sections/Enhanced/"+Channel;
 				rawSections = getFileList(inputdir);
 				rawSections = Array.sort( rawSections );
 				Section1 = rawSections[0];
 				run("Image Sequence...", "open=["+ inputdir + "/" + Section1 + "] scale=100 sort");
 			}
 			if (ProjDetMethod == "Machine Learning Segmentation with Ilastik") {
-				inputdir = input + "4_Processed_Sections/Probability_Masks/"+Channel;
+				inputdir = input + "3_Processed_Sections/Probability_Masks/"+Channel;
 				rawSections = getFileList(inputdir);
 				rawSections = Array.sort( rawSections );
 				Section1 = rawSections[0];
@@ -5213,11 +5198,11 @@ function TransformBinaryDataToAtlas(Channel) {
 		//Transform images to ABA space
 		TBstarttime = getTime();
 
-		File.mkdir(input + "5_Analysis_Output/Temp/Transformed_Binary_Out");
-		InvTransPMod = CreateCmdLine(input + "5_Analysis_Output/Transform_Parameters/ProjectionTransformParameters.txt");
+		File.mkdir(input + "4_Analysis_Output/Temp/Transformed_Binary_Out");
+		InvTransPMod = CreateCmdLine(input + "4_Analysis_Output/Transform_Parameters/ProjectionTransformParameters.txt");
 
 
-		open(input + "5_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv");
+		open(input + "4_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv");
 		Table.rename(Table.title, "Results");
 		IndexOrigin=parseInt(getResult("Z", 0));
 		IndexEnd=parseInt(getResult("Z", 1));
@@ -5232,9 +5217,9 @@ function TransformBinaryDataToAtlas(Channel) {
 		} else {
 
 				
-		TransformedBinaryData = input + "5_Analysis_Output/Temp/Transformed_Binary_Out/result.mhd";
+		TransformedBinaryData = input + "4_Analysis_Output/Temp/Transformed_Binary_Out/result.mhd";
 		ImageForTrans = CreateCmdLine(RegDir + "C"+Channel+"_25_Binary.tif");
-		TempTransImageOut = CreateCmdLine(input + "5_Analysis_Output/Temp/Transformed_Binary_Out");
+		TempTransImageOut = CreateCmdLine(input + "4_Analysis_Output/Temp/Transformed_Binary_Out");
 
 		TransformCmd = Transformix +" -in "+ImageForTrans+" -tp "+InvTransPMod+" -out "+TempTransImageOut;
 		
@@ -5281,7 +5266,7 @@ function TransformBinaryDataToAtlas(Channel) {
 		
 
 	DeleteFile(input+"TransformixRun.bat");
-	DeleteDir(input + "5_Analysis_Output/Temp/Transformed_Binary_Out/");
+	DeleteDir(input + "4_Analysis_Output/Temp/Transformed_Binary_Out/");
 	collectGarbage(10, 4);	
 
 }
@@ -5294,7 +5279,7 @@ function PerformReverseTransformationForProjections() {
 	print("Transforming projections...");
 	if (ProCh > 0 ) {
 	
-		if (File.exists(input + "5_Analysis_Output/Transform_Parameters/ProjectionTransformParameters.txt")) {
+		if (File.exists(input + "4_Analysis_Output/Transform_Parameters/ProjectionTransformParameters.txt")) {
 			print("     Neuronal projection alignment already performed, using existing transform parameters.");
 						
 		} else {
@@ -5311,14 +5296,14 @@ function PerformReverseTransformationForProjections() {
 		
 		// 2) Modify Inv Transform Parameters - NoInitialTransform and Size/Index/Spacing/Origin/Direction set to the atlas space
 
-			open(input + "5_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv");
+			open(input + "4_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv");
 			Table.rename(Table.title, "Results");
 			IndexOrigin=parseInt(getResult("Z", 0));
 			IndexEnd=parseInt(getResult("Z", 1));
 			close("Results");
 
-			//run("Text File... ", "open=["+input + "5_Analysis_Output/Temp/Template_aligned/TransformParameters.1.txt]");
-			filestring=File.openAsString(input + "5_Analysis_Output/Temp/InvOut/TransformParameters.0.txt"); 
+			//run("Text File... ", "open=["+input + "4_Analysis_Output/Temp/Template_aligned/TransformParameters.1.txt]");
+			filestring=File.openAsString(input + "4_Analysis_Output/Temp/InvOut/TransformParameters.0.txt"); 
 			//filestring=File.openAsString(pathfile); 
 
 			rows=split(filestring, "\n"); 
@@ -5370,10 +5355,10 @@ function PerformReverseTransformationForProjections() {
 			}
 		
 			selectWindow("NewTransParameters");
-			run("Text...", "save=["+ input + "5_Analysis_Output/Transform_Parameters/ProjectionTransformParameters.txt]");
+			run("Text...", "save=["+ input + "4_Analysis_Output/Transform_Parameters/ProjectionTransformParameters.txt]");
 			
 			close("ProjectionTransformParameters.txt");
-			DeleteDir(input + "5_Analysis_Output/Temp/InvOut/");
+			DeleteDir(input + "4_Analysis_Output/Temp/InvOut/");
 
 			// CREATE RAW DATA TRANSFORMATION PARAMETERS
 			
@@ -5390,10 +5375,10 @@ function PerformReverseTransformationForProjections() {
 			}
 		
 			selectWindow("NewTransParameters");
-			run("Text...", "save=["+ input + "5_Analysis_Output/Transform_Parameters/RawDataTransformParameters.txt]");
+			run("Text...", "save=["+ input + "4_Analysis_Output/Transform_Parameters/RawDataTransformParameters.txt]");
 			
 			close("RawDataTransformParameters.txt");
-			DeleteDir(input + "5_Analysis_Output/Temp/InvOut/");
+			DeleteDir(input + "4_Analysis_Output/Temp/InvOut/");
 			print("     Transform parameters created.");
 		}	
 	
@@ -5414,16 +5399,16 @@ function TransformAnnotationDataset() {
 	ProTstarttime = getTime();
 	print("Transforming annotation dataset...");
 	
-	if (File.exists(input + "5_Analysis_Output/Transformed_Annotations.tif")) {
+	if (File.exists(input + "4_Analysis_Output/Transformed_Annotations.tif")) {
 		print("     Transformed annotation dataset already created.");
 	} else {
 
-		if (File.exists(input + "5_Analysis_Output/Transform_Parameters/Cell_TransformParameters.0.txt") == 0 ) {
+		if (File.exists(input + "4_Analysis_Output/Transform_Parameters/Cell_TransformParameters.0.txt") == 0 ) {
    			exit("Atlas registration files cannot be found - ensure atlas registration step has been performed.");
    		}
 		
 		//Create Annotation Transformation file 0
-		filestring=File.openAsString(input + "5_Analysis_Output/Transform_Parameters/Cell_TransformParameters.0.txt"); 
+		filestring=File.openAsString(input + "4_Analysis_Output/Transform_Parameters/Cell_TransformParameters.0.txt"); 
 		rows=split(filestring, "\n"); 
 		
 		//Search for required rows		
@@ -5450,13 +5435,13 @@ function TransformAnnotationDataset() {
 		}
 	
 		selectWindow("NewTransParameters");
-		run("Text...", "save=["+ input + "5_Analysis_Output/Transform_Parameters/Annotation_TransformParameters.0.txt]");		
+		run("Text...", "save=["+ input + "4_Analysis_Output/Transform_Parameters/Annotation_TransformParameters.0.txt]");		
 		close("Annotation_TransformParameters.0.txt");
 
 		
 	// Create Annotation transform file 1
 
-		filestring=File.openAsString(input + "5_Analysis_Output/Transform_Parameters/Cell_TransformParameters.1.txt"); 
+		filestring=File.openAsString(input + "4_Analysis_Output/Transform_Parameters/Cell_TransformParameters.1.txt"); 
 		rows=split(filestring, "\n"); 
 	
 		//Search for required rows	
@@ -5473,7 +5458,7 @@ function TransformAnnotationDataset() {
 		}
 	
 		//Create new array lines
-		newParam ="(InitialTransformParametersFileName "+ q + input + "5_Analysis_Output/Transform_Parameters/Annotation_TransformParameters.0.txt"+q+")";
+		newParam ="(InitialTransformParametersFileName "+ q + input + "4_Analysis_Output/Transform_Parameters/Annotation_TransformParameters.0.txt"+q+")";
 		newBSpline = "(FinalBSplineInterpolationOrder 0)";
 		newPixelType = "(ResultImagePixelType \"float\")";
 			
@@ -5488,7 +5473,7 @@ function TransformAnnotationDataset() {
 		}
 	
 		selectWindow("NewTransParameters");
-		run("Text...", "save=["+ input + "5_Analysis_Output/Transform_Parameters/Annotation_TransformParameters.1.txt]");		
+		run("Text...", "save=["+ input + "4_Analysis_Output/Transform_Parameters/Annotation_TransformParameters.1.txt]");		
 		close("Annotation_TransformParameters.1.txt");
 
 		// CREATE RAW DATA TRANSFORMATION PARAMETERS
@@ -5498,15 +5483,15 @@ function TransformAnnotationDataset() {
 	
 	// Read in the number of slices in the raw data - to rescale the annotated data.
 		//Count number of registered slices
-		RegSectionsCount = getFileList(input+ "/3_Registered_Sections/1/");	
+		RegSectionsCount = getFileList(input+ "/2_Registered_Sections/1/");	
 		RegSectionsCount = RegSectionsCount.length;		
 	
 		// Transform annotation file
-		File.mkdir(input + "5_Analysis_Output/Temp/AnnOut");
+		File.mkdir(input + "4_Analysis_Output/Temp/AnnOut");
 
 		AnnotationImage = CreateCmdLine(AtlasDir + "Annotation.tif");
-		AnnTransParam = CreateCmdLine(input + "5_Analysis_Output/Transform_Parameters/Annotation_TransformParameters.1.txt");
-		AnnotationImageOut = CreateCmdLine(input + "5_Analysis_Output/Temp/AnnOut/");
+		AnnTransParam = CreateCmdLine(input + "4_Analysis_Output/Transform_Parameters/Annotation_TransformParameters.1.txt");
+		AnnotationImageOut = CreateCmdLine(input + "4_Analysis_Output/Temp/AnnOut/");
 			
 		TransformCmd = Transformix +" -in "+AnnotationImage+" -tp "+AnnTransParam+" -out "+AnnotationImageOut;
 
@@ -5516,12 +5501,12 @@ function TransformAnnotationDataset() {
 		runCmd = CreateCmdLine(input + "TransformixRun.bat");
 		exec(runCmd);
 
-		run("MHD/MHA...", "open=["+ input + "5_Analysis_Output/Temp/AnnOut/result.mhd]");
+		run("MHD/MHA...", "open=["+ input + "4_Analysis_Output/Temp/AnnOut/result.mhd]");
 		run("Size...", "depth="+RegSectionsCount+" interpolation=None");
-		saveAs("Tiff", input + "5_Analysis_Output/Transformed_Annotations.tif");
+		saveAs("Tiff", input + "4_Analysis_Output/Transformed_Annotations.tif");
 		close("*");			
-		DeleteDir(input + "5_Analysis_Output/Temp/AnnOut/");
-		File.makeDirectory(input + "5_Analysis_Output/Temp/AnnOut/");
+		DeleteDir(input + "4_Analysis_Output/Temp/AnnOut/");
+		File.makeDirectory(input + "4_Analysis_Output/Temp/AnnOut/");
 
 
 		// Create and transform hemisphere location image - left is 0 right is 1.
@@ -5543,10 +5528,10 @@ function TransformAnnotationDataset() {
 			setForegroundColor(255, 255, 255);
 			run("Fill", "stack");
 			//run("Reslice [/]...", "output=1.000 start=Left rotate avoid");
-			saveAs("Tiff", input + "5_Analysis_Output/Temp/AnnOut/Hemisphere_Annotation.tif");
+			saveAs("Tiff", input + "4_Analysis_Output/Temp/AnnOut/Hemisphere_Annotation.tif");
 			close("*");
 					
-			HemisphereImage = CreateCmdLine(input + "5_Analysis_Output/Temp/AnnOut/Hemisphere_Annotation.tif");
+			HemisphereImage = CreateCmdLine(input + "4_Analysis_Output/Temp/AnnOut/Hemisphere_Annotation.tif");
 		}		
 		
 		TransformCmd = Transformix +" -in "+HemisphereImage+" -tp "+AnnTransParam+" -out "+AnnotationImageOut;
@@ -5555,10 +5540,10 @@ function TransformAnnotationDataset() {
 		runCmd = CreateCmdLine(input + "TransformixRun.bat");
 		exec(runCmd);
 		
-		run("MHD/MHA...", "open=["+ input + "5_Analysis_Output/Temp/AnnOut/result.mhd]");
+		run("MHD/MHA...", "open=["+ input + "4_Analysis_Output/Temp/AnnOut/result.mhd]");
 		run("8-bit");
 		run("Size...", "depth="+RegSectionsCount+" interpolation=None");
-		saveAs("Tiff", input + "5_Analysis_Output/Transformed_Hemisphere_Annotations.tif");
+		saveAs("Tiff", input + "4_Analysis_Output/Transformed_Hemisphere_Annotations.tif");
 		close("*");	
 
 
@@ -5566,20 +5551,20 @@ function TransformAnnotationDataset() {
 			// Create and transform hemisphere location image - left is 0 right is 1.
 			open(AtlasDir + "Segment_Annotations.tif");
 			run("Scale...", "x="+AtlasSizeX+" y="+AtlasSizeY+" z=1.0 interpolation=None average process create title=Segment_Annotations_Full.tif");			
-			saveAs("Tiff", input + "5_Analysis_Output/Temp/AnnOut/Segment_Annotation.tif");
+			saveAs("Tiff", input + "4_Analysis_Output/Temp/AnnOut/Segment_Annotation.tif");
 			close("*");
 			
-			HemisphereImage = CreateCmdLine(input + "5_Analysis_Output/Temp/AnnOut/Segment_Annotation.tif");		
+			HemisphereImage = CreateCmdLine(input + "4_Analysis_Output/Temp/AnnOut/Segment_Annotation.tif");		
 			TransformCmd = Transformix +" -in "+HemisphereImage+" -tp "+AnnTransParam+" -out "+AnnotationImageOut;
 			CreateBatFile (TransformCmd, input, "TransformixRun");
 			runCmd = CreateCmdLine(input + "TransformixRun.bat");
 			exec(runCmd);
 			
-			run("MHD/MHA...", "open=["+ input + "5_Analysis_Output/Temp/AnnOut/result.mhd]");
+			run("MHD/MHA...", "open=["+ input + "4_Analysis_Output/Temp/AnnOut/result.mhd]");
 			setMinAndMax(0, 255);
 			run("8-bit");
 			run("Size...", "depth="+RegSectionsCount+" interpolation=None");
-			saveAs("Tiff", input + "5_Analysis_Output/Transformed_Segments.tif");
+			saveAs("Tiff", input + "4_Analysis_Output/Transformed_Segments.tif");
 			makePoint(AtlasSizeX/2, AtlasSizeY/2, "small yellow hybrid");
 			
 			
@@ -5610,12 +5595,12 @@ function TransformAnnotationDataset() {
 				print(title2,SegMean+"\t"+SegmentRefArray[SegMean-1]);	
 			}
 			selectWindow(title1);
-			run("Text...", "save=["+ input + "5_Analysis_Output/Transformed_Segment_Annotations.csv]");
+			run("Text...", "save=["+ input + "4_Analysis_Output/Transformed_Segment_Annotations.csv]");
 			close(title1);
 			close("*");				
 		}
 		DeleteFile(input+"TransformixRun.bat");
-		DeleteDir(input + "5_Analysis_Output/Temp/AnnOut/");
+		DeleteDir(input + "4_Analysis_Output/Temp/AnnOut/");
 		print("   Annotation transformation complete.");
 	}
 		
@@ -5629,10 +5614,10 @@ function CreateDensityTableLRHemisphereFullRes(Channel, ProBGround) {
 	// creates a volume and density table using a transformed annotation image
 	// Transformed Annotations scaled up to match FR data
 	// Isolate each region and perform density analysis
-	// CreateDensityTable(input + "5_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv", ProCh, input + "5_Analysis_Output/Temp/Transformed_C"+ProCh+"_Binary_Out/result.mhd", input+"/5_Analysis_Output");
+	// CreateDensityTable(input + "4_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv", ProCh, input + "4_Analysis_Output/Temp/Transformed_C"+ProCh+"_Binary_Out/result.mhd", input+"/4_Analysis_Output");
 	//get origin front and back
 
-	OutputDir = input+"/5_Analysis_Output";
+	OutputDir = input+"/4_Analysis_Output";
 	
 	if (File.exists(OutputDir + "/Projection_Density_Analysis_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Channel+"_Measured_Projection_Density.csv")) {
 		print("     Projection density analysis already performed. If you wish to rerun, delete: \n     "+OutputDir + "/Projection_Density_Analysis_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Channel+"_Measured_Projection_Density.csv");
@@ -5650,14 +5635,14 @@ function CreateDensityTableLRHemisphereFullRes(Channel, ProBGround) {
 	print("   Importing projection data for density analysis...");
 	
 	if (ProjDetMethod == "Binary Threshold") {
-		inputdir = input + "4_Processed_Sections/Enhanced/"+Channel;
+		inputdir = input + "3_Processed_Sections/Enhanced/"+Channel;
 		rawSections = getFileList(inputdir);
 		rawSections = Array.sort( rawSections );
 		Section1 = rawSections[0];
 		run("Image Sequence...", "open=["+ inputdir + "/" + Section1 + "] scale=100 sort");
 	}
 	if (ProjDetMethod == "Machine Learning Segmentation with Ilastik") {
-		inputdir = input + "4_Processed_Sections/Probability_Masks/"+Channel;
+		inputdir = input + "3_Processed_Sections/Probability_Masks/"+Channel;
 		rawSections = getFileList(inputdir);
 		rawSections = Array.sort( rawSections );
 		Section1 = rawSections[0];
@@ -5708,7 +5693,7 @@ function CreateDensityTableLRHemisphereFullRes(Channel, ProBGround) {
 
 	print("   Importing and scaling annotation data for analysis...");
 	
-	open(input + "5_Analysis_Output/Transformed_Annotations.tif");
+	open(input + "4_Analysis_Output/Transformed_Annotations.tif");
 	rename("Annotations");
 
 	// Rescale if necessary 
@@ -5716,7 +5701,7 @@ function CreateDensityTableLRHemisphereFullRes(Channel, ProBGround) {
 	
 	// Import Hemisphere Mask
 
-	open(input + "5_Analysis_Output/Transformed_Hemisphere_Annotations.tif");
+	open(input + "4_Analysis_Output/Transformed_Hemisphere_Annotations.tif");
 	rename("Hemi_Annotations");
 	
 	// Rescale if necessary 
@@ -5760,9 +5745,9 @@ function CreateDensityTableLRHemisphereFullRes(Channel, ProBGround) {
 
 	// Then measure volume of regions in cropped annotated brain - check if it's already been measured
 
-	if (File.exists(input+"/5_Analysis_Output/Annotated_Volumes_XY_"+ProAnRes+"_Z_"+ZCut+"micron.csv")) {
+	if (File.exists(input+"/4_Analysis_Output/Annotated_Volumes_XY_"+ProAnRes+"_Z_"+ZCut+"micron.csv")) {
 		print("Annotated volumes already measured, proceeding to measure projection volumes");
-		open(input+"/5_Analysis_Output/Annotated_Volumes_XY_"+ProAnRes+"_Z_"+ZCut+"micron.csv");
+		open(input+"/4_Analysis_Output/Annotated_Volumes_XY_"+ProAnRes+"_Z_"+ZCut+"micron.csv");
 		Table.rename(Table.title, "Results");
 		VolumesLeft = newArray(NumIDs);
 		VolumesRight = newArray(NumIDs);
@@ -5831,7 +5816,7 @@ function CreateDensityTableLRHemisphereFullRes(Channel, ProBGround) {
 		selectWindow(title1);
 		//Find way of renaming table to results so that it can be edited as results. For NOW just save and reopen
 		//IJ.renameResults(title1,"Results");
-		run("Text...", "save=["+ input+"/5_Analysis_Output/Annotated_Volumes_XY_"+ProAnRes+"_Z_"+ZCut+"micron.csv]");
+		run("Text...", "save=["+ input+"/4_Analysis_Output/Annotated_Volumes_XY_"+ProAnRes+"_Z_"+ZCut+"micron.csv]");
 		close(title1);
 		}		
 		print("   Measurements complete.");
@@ -5953,12 +5938,12 @@ function CreateDensityTableLRHemisphereFullResSpinalCord(Channel, ProBGround) {
 	// creates a volume and density table using a transformed annotation image
 	// Transformed Annotations scaled up to match FR data
 	// Isolate each region and perform density analysis
-	// CreateDensityTable(input + "5_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv", ProCh, input + "5_Analysis_Output/Temp/Transformed_C"+ProCh+"_Binary_Out/result.mhd", input+"/5_Analysis_Output");
+	// CreateDensityTable(input + "4_Analysis_Output/Transform_Parameters/OriginPoints/Origin_Output_Points.csv", ProCh, input + "4_Analysis_Output/Temp/Transformed_C"+ProCh+"_Binary_Out/result.mhd", input+"/4_Analysis_Output");
 	//get origin front and back
 	LateralRes = 10;
 	
 	run("Input/Output...", "jpeg=100 gif=-1 file=.csv use use_file save_column");
-	OutputDir = input+"/5_Analysis_Output";
+	OutputDir = input+"/4_Analysis_Output";
 	
 	if (File.exists(OutputDir + "/Projection_Density_Analysis_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Channel+"_Region_and_Segment_Projection_Density.csv")) {
 		print("     Projection density analysis already performed. If you wish to rerun, delete: \n     "+OutputDir + "/Projection_Density_Analysis_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Channel+"_Region_and_Segment_Projection_Density.csv");
@@ -5973,14 +5958,14 @@ function CreateDensityTableLRHemisphereFullResSpinalCord(Channel, ProBGround) {
 	print("   Importing projection data for density analysis...");
 	
 	if (ProjDetMethod == "Binary Threshold") {
-		inputdir = input + "4_Processed_Sections/Enhanced/"+Channel;
+		inputdir = input + "3_Processed_Sections/Enhanced/"+Channel;
 		rawSections = getFileList(inputdir);
 		rawSections = Array.sort( rawSections );
 		Section1 = rawSections[0];
 		run("Image Sequence...", "open=["+ inputdir + "/" + Section1 + "] scale=100 sort");
 	}
 	if (ProjDetMethod == "Machine Learning Segmentation with Ilastik") {
-		inputdir = input + "4_Processed_Sections/Probability_Masks/"+Channel;
+		inputdir = input + "3_Processed_Sections/Probability_Masks/"+Channel;
 		rawSections = getFileList(inputdir);
 		rawSections = Array.sort( rawSections );
 		Section1 = rawSections[0];
@@ -6023,18 +6008,18 @@ function CreateDensityTableLRHemisphereFullResSpinalCord(Channel, ProBGround) {
 	// Import Annotations
 	
 	print("   Importing and scaling annotation data for analysis...");
-	open(input + "5_Analysis_Output/Transformed_Annotations.tif");
+	open(input + "4_Analysis_Output/Transformed_Annotations.tif");
 	rename("Annotations");
 
 	run("Size...", "width="+IMwidth+" height="+IMheight+" depth="+IMslices+" interpolation=None");
 
 	// Import Segments	
-	open(input + "5_Analysis_Output/Transformed_Segments.tif");
+	open(input + "4_Analysis_Output/Transformed_Segments.tif");
 	rename("Segments");
 	run("Size...", "width="+IMwidth+" height="+IMheight+" depth="+IMslices+" interpolation=None");
 
 	// Import Hemisphere Mask
-	open(input + "5_Analysis_Output/Transformed_Hemisphere_Annotations.tif");
+	open(input + "4_Analysis_Output/Transformed_Hemisphere_Annotations.tif");
 	rename("Hemi_Annotations");
 	run("Size...", "width="+IMwidth+" height="+IMheight+" depth="+IMslices+" interpolation=None");
 	run("Divide...", "value=255 stack");
@@ -6082,7 +6067,7 @@ function CreateDensityTableLRHemisphereFullResSpinalCord(Channel, ProBGround) {
 	close("Results");
 
 	// Then measure volume of regions in cropped annotated brain - check if it's already been measured
-	SCTableOut = input+"/5_Analysis_Output/Annotated_Volumes_XY_"+LateralRes+"_Z_"+ZCut+"micron.csv";
+	SCTableOut = input+"/4_Analysis_Output/Annotated_Volumes_XY_"+LateralRes+"_Z_"+ZCut+"micron.csv";
 		
 	if (File.exists(SCTableOut) == false) {
 		SCMeasureRegionVolumes(SCTableOut);
@@ -6185,10 +6170,10 @@ function CreateDensityTableLRHemisphereFullResSpinalCord(Channel, ProBGround) {
 
 	// Create SC total row and then summary rows
 	SCCreateSummaryRows (OutputDir + "/Projection_Density_Analysis_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Channel+"_Region_and_Segment_Projection_Volume.csv");
-	SCCreateSummaryRows (input+"/5_Analysis_Output/Annotated_Volumes_XY_"+ProAnRes+"_Z_"+ZCut+"micron.csv");
+	SCCreateSummaryRows (input+"/4_Analysis_Output/Annotated_Volumes_XY_"+ProAnRes+"_Z_"+ZCut+"micron.csv");
 	
 	// Create density by dividing projection vol by total vol
-	SpinalCordCreateDensityTable (OutputDir + "/Projection_Density_Analysis_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Channel+"_Region_and_Segment_Projection_Volume.csv", input+"/5_Analysis_Output/Annotated_Volumes_XY_"+ProAnRes+"_Z_"+ZCut+"micron.csv", OutputDir + "/Projection_Density_Analysis_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Channel+"_Region_and_Segment_Projection_Density.csv","C"+Channel+"_Region_and_Segment_Projection_Density.csv");		
+	SpinalCordCreateDensityTable (OutputDir + "/Projection_Density_Analysis_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Channel+"_Region_and_Segment_Projection_Volume.csv", input+"/4_Analysis_Output/Annotated_Volumes_XY_"+ProAnRes+"_Z_"+ZCut+"micron.csv", OutputDir + "/Projection_Density_Analysis_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Channel+"_Region_and_Segment_Projection_Density.csv","C"+Channel+"_Region_and_Segment_Projection_Density.csv");		
 	
 	// Create relative density by dividing all rows by row for Region ID 250
 	SpinalCordCreateRelativeDensityTable (OutputDir + "/Projection_Density_Analysis_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Channel+"_Region_and_Segment_Projection_Volume.csv", OutputDir + "/Projection_Density_Analysis_XY_"+ProAnRes+"_Z_"+ZCut+"micron/C"+Channel+"_Region_and_Segment_Projection_Relative_Density.csv","C"+Channel+"_Region_and_Segment_Projection_Relative_Density.csv");		
@@ -6207,7 +6192,7 @@ function AnnotatedRegionExtraction () {
 	print("Extracting selected regions at full resolution...");
 	run("Options...", "iterations=3 count=1 black do=Nothing");
 	
-	OutputDir = input+"/5_Analysis_Output";
+	OutputDir = input+"/4_Analysis_Output";
 	
 	if (File.exists(OutputDir + "/Full_Resolution_Extracted_Regions") == 0) {
 		File.mkdir(OutputDir + "/Full_Resolution_Extracted_Regions");
@@ -6215,15 +6200,15 @@ function AnnotatedRegionExtraction () {
 
 
 	//Count number of channel folders in Registered Directory
-	channels = getFileList(input+ "/3_Registered_Sections/");
+	channels = getFileList(input+ "/2_Registered_Sections/");
 	ChNum = 0;
 	for(i=0; i<channels.length; i++) { 
-		if (File.isDirectory(input+ "/3_Registered_Sections/"+channels[i])) {
+		if (File.isDirectory(input+ "/2_Registered_Sections/"+channels[i])) {
 			ChNum = ChNum + 1;
 		}
 	}
 	//Count number of registered slices
-	IMslices = getFileList(input+ "/3_Registered_Sections/1/");	
+	IMslices = getFileList(input+ "/2_Registered_Sections/1/");	
 	IMslices = IMslices.length;		
 	
 
@@ -6246,14 +6231,14 @@ function AnnotatedRegionExtraction () {
 	// Import Annotations
 
 	print("   Importing and scaling annotation data...");
-	open(input + "5_Analysis_Output/Transformed_Annotations.tif");
+	open(input + "4_Analysis_Output/Transformed_Annotations.tif");
 	rename("Annotations");
 	// Rescale if necessary 
 	run("Size...", "width="+IMwidth+" height="+IMheight+" depth="+IMslices+" interpolation=None");
 	
 	// Import Hemisphere Mask
 	
-	open(input + "5_Analysis_Output/Transformed_Hemisphere_Annotations.tif");
+	open(input + "4_Analysis_Output/Transformed_Hemisphere_Annotations.tif");
 	rename("Hemi_Annotations");
 	
 	// Rescale if necessary 
@@ -6396,10 +6381,10 @@ function AnnotatedRegionExtraction () {
 
 function FinalCleanup() {
 	close("Results");
-	DeleteDir(input + "5_Analysis_Output/Temp/Transformed_Raw_Out/");
-	DeleteDir(input + "5_Analysis_Output/Temp/InvOut/");
-	DeleteDir(input + "5_Analysis_Output/Temp/AnnOut/");
-	DeleteDir(input + "5_Analysis_Output/Temp/");
+	DeleteDir(input + "4_Analysis_Output/Temp/Transformed_Raw_Out/");
+	DeleteDir(input + "4_Analysis_Output/Temp/InvOut/");
+	DeleteDir(input + "4_Analysis_Output/Temp/AnnOut/");
+	DeleteDir(input + "4_Analysis_Output/Temp/");
 }
 
 function CountSubFolders(Directory) {
@@ -6836,7 +6821,7 @@ function CreateCellDensityTableLRHemisphereFullResSpinalCord(Channel) {
 	SCColTitlesList = split(SCColTitles, ",");
 	
 	run("Input/Output...", "jpeg=100 gif=-1 file=.csv use use_file save_column");
-	OutputDir = input+"/5_Analysis_Output";
+	OutputDir = input+"/4_Analysis_Output";
 
 	LateralRes = 10;
 	VoxSize = LateralRes*LateralRes*ZCut;
@@ -6849,16 +6834,16 @@ function CreateCellDensityTableLRHemisphereFullResSpinalCord(Channel) {
 		// Import Annotations - note this file is saved in XY = atlasres and Z = count of real sections
 		
 		print("   Importing and scaling annotation data for analysis...");
-		open(input + "5_Analysis_Output/Transformed_Annotations.tif");
+		open(input + "4_Analysis_Output/Transformed_Annotations.tif");
 		rename("Annotations");
 		getDimensions(width, height, channels, IMslices, frames);
 	
 		// Import Segments	
-		open(input + "5_Analysis_Output/Transformed_Segments.tif");
+		open(input + "4_Analysis_Output/Transformed_Segments.tif");
 		rename("Segments");
 	
 		// Import Hemisphere Mask
-		open(input + "5_Analysis_Output/Transformed_Hemisphere_Annotations.tif");
+		open(input + "4_Analysis_Output/Transformed_Hemisphere_Annotations.tif");
 		rename("Hemi_Annotations");
 		run("Divide...", "value=255 stack");
 		
@@ -6885,7 +6870,7 @@ function CreateCellDensityTableLRHemisphereFullResSpinalCord(Channel) {
 		close("Results");
 	
 		// Then measure volume of regions in cropped annotated brain - check if it's already been measured
-		SCTableOut = input+"/5_Analysis_Output/Annotated_Volumes_XY_"+LateralRes+"_Z_"+ZCut+"micron.csv";
+		SCTableOut = input+"/4_Analysis_Output/Annotated_Volumes_XY_"+LateralRes+"_Z_"+ZCut+"micron.csv";
 		
 		if (File.exists(SCTableOut) == false) {
 			SCMeasureRegionVolumes(SCTableOut);
@@ -6900,7 +6885,7 @@ function CreateCellDensityTableLRHemisphereFullResSpinalCord(Channel) {
 	// Create Empty Table
 	CreateEmptySpinalCordTable(OutputDir + "/Cell_Analysis/C"+Channel+"_Region_and_Segment_Cell_Density_mm3.csv");
 			
-	SpinalCordCreateCellDensityTable (OutputDir + "/Cell_Analysis/C"+Channel+"_Detected_Cells_Segment_Summary.csv", input+"/5_Analysis_Output/Annotated_Volumes_XY_"+LateralRes+"_Z_"+ZCut+"micron.csv", OutputDir + "/Cell_Analysis/C"+Channel+"_Region_and_Segment_Cell_Density_mm3.csv","C"+Channel+"_Region_and_Segment_Cell_Density_mm3.csv", mm3scale);			
+	SpinalCordCreateCellDensityTable (OutputDir + "/Cell_Analysis/C"+Channel+"_Detected_Cells_Segment_Summary.csv", input+"/4_Analysis_Output/Annotated_Volumes_XY_"+LateralRes+"_Z_"+ZCut+"micron.csv", OutputDir + "/Cell_Analysis/C"+Channel+"_Region_and_Segment_Cell_Density_mm3.csv","C"+Channel+"_Region_and_Segment_Cell_Density_mm3.csv", mm3scale);			
 	print("   Cell density measurements complete.");
 	}
 }
