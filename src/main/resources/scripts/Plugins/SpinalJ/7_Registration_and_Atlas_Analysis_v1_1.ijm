@@ -13,7 +13,7 @@
 
 
 // Initialization
-requires("1.53c");
+requires("1.53f");
 run("Options...", "iterations=3 count=1 black edm=Overwrite");
 run("Colors...", "foreground=white background=black selection=yellow");
 run("Clear Results"); 
@@ -1401,7 +1401,7 @@ function RegisterSections() {
 	if (FullResDAPI == 0 && ChNum > 1) {
 		File.mkdir(RegDir+AlignCh);
 		rename("Ch");
-		run("Image Sequence... ", "format=TIFF save=["+input+"/2_Registered_Sections/"+AlignCh+"/0000.tif]");
+		run("Image Sequence... ", "format=TIFF save=["+input+"/2_Registered_Sections/"+AlignCh+"/]");
 		rename("DAPI");			
 	}
 	
@@ -1656,7 +1656,7 @@ function RegisterSections() {
 			//saveAs("Tiff", input+"/3_Registered_Slices/Ch"+j+"_registered.tif");
 			
 			File.mkdir(RegDir+j);
-			run("Image Sequence... ", "format=TIFF save=["+input+"/2_Registered_Sections/"+j+"/0000.tif]");
+			run("Image Sequence... ", "format=TIFF save=["+input+"/2_Registered_Sections/"+j+"/]");
 			close();
 			
 			collectGarbage(Dslices, 4);
@@ -1869,7 +1869,8 @@ function CreateProbabilityMap(CellChan) {
 			if (BGSZ > 0) {
 				run("Subtract Background...", "rolling="+ BGSZ + " stack");
 			}
-			run("Image Sequence... ", "format=TIFF save=["+EnOut+"Section0000.tif]");
+			rename("Section");
+			run("Image Sequence... ", "format=TIFF save=["+EnOut+"]");
 
 			if (MaskOut != 0) {
 				setThreshold(MaskThresh, 65535);
@@ -1877,7 +1878,8 @@ function CreateProbabilityMap(CellChan) {
 				run("Convert to Mask", "method=Default background=Dark black");
 				print(EnOut);
 				print(MaskOut);
-				run("Image Sequence... ", "format=PNG save=["+MaskOut+"Section0000.png]");				
+				rename("Section");
+				run("Image Sequence... ", "format=PNG save=["+MaskOut+"]");				
 			}			
 			close();
 			collectGarbage(Dslices, 4);
@@ -2011,7 +2013,8 @@ function CreateProbabilityMapBatch(CellChan) {
 			if (BGSZ > 0) {
 				run("Subtract Background...", "rolling="+ BGSZ + " stack");
 			}
-			run("Image Sequence... ", "format=TIFF save=["+EnOut+"Section0000.tif]");
+			rename("Section");
+			run("Image Sequence... ", "format=TIFF save=["+EnOut+"]");
 
 			if (MaskOut != 0) {
 				setThreshold(MaskThresh, 65535);
@@ -2019,7 +2022,8 @@ function CreateProbabilityMapBatch(CellChan) {
 				run("Convert to Mask", "method=Default background=Dark black");
 				print(EnOut);
 				print(MaskOut);
-				run("Image Sequence... ", "format=PNG save=["+MaskOut+"Section0000.png]");
+				rename("Section");
+				run("Image Sequence... ", "format=PNG save=["+MaskOut+"]");
 				
 			}
 			
@@ -2140,7 +2144,8 @@ function BGSubChannel(CellChan) {
 		if (BGSZ > 0){
 			run("Subtract Background...", "rolling="+ BGSZ + " stack");
 		}
-		run("Image Sequence... ", "format=TIFF save=["+EnOut+"Section0000.tif]");
+		rename("Section");
+		run("Image Sequence... ", "format=TIFF save=["+EnOut+"]");
 	}
 	//close();
 	collectGarbage(Dslices, 4);
@@ -2188,7 +2193,8 @@ function EnhanceAndFindMaxima(CellChan, MaximaInt) {
 			if (BGSZ > 0){
 				run("Subtract Background...", "rolling="+ BGSZ + " stack");
 			}
-			run("Image Sequence... ", "format=TIFF save=["+EnOut+"Section0000.tif]");
+			rename("Section");
+			run("Image Sequence... ", "format=TIFF save=["+EnOut+"]");
 		}
 		
 		collectGarbage(Dslices, 4);
