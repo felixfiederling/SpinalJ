@@ -19,8 +19,8 @@ run("Colors...", "foreground=white background=black selection=yellow");
 run("Clear Results"); 
 run("Close All");
 
-SpinalJVer ="SpinalJ 1.1";
-ReleaseDate= "4/28/2021";
+SpinalJVer ="SpinalJ 1.5";
+ReleaseDate= "10/15/2021";
 
 
 #@ File[] listOfPaths(label="Select experiment/spinal cord folders (/_Output/):", style="both")
